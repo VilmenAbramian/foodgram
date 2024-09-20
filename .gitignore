@@ -140,3 +140,6 @@ dmypy.json
 
 static/
 media/
+
+# mac files
+.DS_Store
