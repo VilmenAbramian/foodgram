@@ -1,3 +1,21 @@
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-# Create your models here.
+
+class User(AbstractUser):
+    '''
+    Кастомная модель пользователя
+    '''
+    USER = 'user'
+    ADMIN = 'admin'
+    ROLE_USER = [
+        (USER, 'Пользователь'),
+        (ADMIN, 'Администратор')
+    ]
+    username = models.CharField(max_length=128, unique=True)
+    first_name = models.CharField(max_length=64)
+    last_name = models.CharField(max_length=64)
+    email = models.EmailField(unique=True)
+    password = models.CharField(max_length=128)
+    role = models.CharField(max_length=16, choices=ROLE_USER,
+                            default=USER)
