@@ -12,8 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     def validate_username(self, username):
         if not re.match('^[\w.@+-]+\Z', username):
-            message = 'Invalid username!'
-            raise serializers.ValidationError(message)
+            raise serializers.ValidationError('Invalid username!')
         return username
 
     def create(self, validated_data):
