@@ -3,7 +3,22 @@ import re
 from django.core.files.base import ContentFile
 from rest_framework import serializers
 
-from .models import User
+from .models import Subscriptions, User
+
+
+class CreateUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('email', 'id', 'username', 'first_name', 'last_name', 'password')
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def validate_username(self, username):
+        if not re.match('^[\w.@+-]+\Z', username):
+            raise serializers.ValidationError('Invalid username!')
+        return username
+    
+    def create(self, validated_data):
+        return User.objects.create_user(**validated_data)
 
 
 class Base64ImageField(serializers.ImageField):
@@ -18,18 +33,17 @@ class Base64ImageField(serializers.ImageField):
 
 class UserSerializer(serializers.ModelSerializer):
     avatar = Base64ImageField(required=False, allow_null=True)
+    is_subscribed = serializers.SerializerMethodField()
     class Meta:
         model = User
-        fields = ('email', 'id', 'username', 'first_name', 'last_name', 'password', 'avatar')
-        extra_kwargs = {'password': {'write_only': True},}
-
-    def validate_username(self, username):
-        if not re.match('^[\w.@+-]+\Z', username):
-            raise serializers.ValidationError('Invalid username!')
-        return username
-
-    def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+        fields = ('email', 'id', 'username', 'first_name', 'last_name', 'password', 'avatar', 'is_subscribed')
+        extra_kwargs = {'password': {'write_only': True}, 'is_subscribed': {'read_only': True}}
+    
+    def get_is_subscribed(self, obj):
+        user = self.context.get('request').user
+        if not user.is_anonymous:
+            return Subscriptions.objects.filter(user=user, author=obj).exists()
+        return False
     
     def update(self, instance, validated_data):
         instance.avatar = validated_data.get('avatar', instance.avatar)
