@@ -1,3 +1,4 @@
+from djoser.serializers import SetPasswordSerializer
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
@@ -5,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from users.models import User
-from users.serializers import UserSerializer
+from users.serializers import UserSerializer, CreateUserSerializer
 
 class MyPagePagination(PageNumberPagination):
     page_size_query_param = 'limit'
@@ -14,8 +15,12 @@ class MyPagePagination(PageNumberPagination):
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
-    serializer_class = UserSerializer
     pagination_class = MyPagePagination
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return CreateUserSerializer
+        return UserSerializer
 
     @action(detail=False,
             methods=['get', 'post'],
@@ -26,10 +31,20 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = UserSerializer(user, context={'request': request})
         return Response(serializer.data)
 
-    @action(detail=True)
+    @action(detail=False,
+            methods=['post'],
+            permission_classes=[IsAuthenticated])
     def set_password(self, request, *args, **kwargs):
         '''Изменить пароль'''
-        ...
+        serializer = SetPasswordSerializer(
+            data=request.data,
+            context={'request':request}
+        )
+        if serializer.is_valid(raise_exception=True):
+            self.request.user.set_password(serializer.data['new_password'])
+            self.request.user.save()
+            return Response('Пароль успешно изменён', status=status.HTTP_204_NO_CONTENT)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True)
     def subscribe(self, request, *args, **kwargs):
