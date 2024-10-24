@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from djoser.serializers import SetPasswordSerializer
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -49,7 +50,10 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=True)
     def subscribe(self, request, *args, **kwargs):
         '''Создать и/или удалить подписку'''
-        ...
+        user = self.request.user
+        author = get_object_or_404(User, id=self.kwargs.get('pk'))
+        if request.method == 'POST':
+            ...
 
     @action(detail=False)
     def subscriptions(self, request):
