@@ -4,14 +4,33 @@ from users.models import User
 
 
 class Ingredient(models.Model):
-    name = models.CharField(max_length=128)
-    measurement_unit = models.CharField(max_length=8)
+    name = models.CharField(
+        max_length=128,
+        verbose_name = 'Название ингредиента',
+        help_text='Введите название ингредиента')
+    measurement_unit = models.CharField(
+        max_length=8,
+        verbose_name='Единица измерения',
+        help_text='Введите название единицы измерения')
 
+    class Meta:
+        verbose_name = 'Ингредиент'
+        verbose_name_plural = 'Ингредиенты'
+    
+    def __str__(self):
+        return self.name
 
 class Tag(models.Model):
     name = models.CharField(max_length=64, unique=True)
     slug = models.SlugField(unique=True)
     color = models.CharField(max_length=64)
+
+    class Meta:
+        verbose_name = 'Тег'
+        verbose_name_plural = 'Теги'
+
+    def __str__(self):
+        return self.name
 
 
 class Recipe(models.Model):
@@ -25,6 +44,10 @@ class Recipe(models.Model):
     ingredients = models.ManyToManyField(Ingredient, through='RecipeIngredient')
     tag = models.ManyToManyField(Tag)
     time = models.IntegerField()
+
+    class Meta:
+        verbose_name = 'Рецепт'
+        verbose_name_plural = 'Рецепты'
 
 
 class RecipeIngredient(models.Model):
