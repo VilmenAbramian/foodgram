@@ -5,7 +5,7 @@ from users.models import User
 
 class Ingredient(models.Model):
     name = models.CharField(max_length=128)
-    unit = models.CharField(max_length=8)
+    measurement_unit = models.CharField(max_length=8)
 
 
 class Tag(models.Model):
