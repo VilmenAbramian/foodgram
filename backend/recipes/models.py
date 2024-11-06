@@ -21,9 +21,22 @@ class Ingredient(models.Model):
         return self.name
 
 class Tag(models.Model):
-    name = models.CharField(max_length=64, unique=True)
-    slug = models.SlugField(unique=True)
-    color = models.CharField(max_length=64)
+    name = models.CharField(
+        max_length=64,
+        unique=True,
+        verbose_name = 'Название тега',
+        help_text='Введите название тега'
+        )
+    slug = models.SlugField(
+        unique=True,
+        verbose_name = 'Слаг тега',
+        help_text='Введите слаг тега'
+        )
+    color = models.CharField(
+        max_length=64,
+        verbose_name = 'Цвет тега',
+        help_text='Введите значение цвета тега'
+        )
 
     class Meta:
         verbose_name = 'Тег'
@@ -38,12 +51,12 @@ class Recipe(models.Model):
         User,
         on_delete=models.CASCADE
     )
-    title = models.CharField(max_length=256)
+    name = models.CharField(max_length=256)
     image = models.ImageField(upload_to='media/')
     text = models.TextField()
     ingredients = models.ManyToManyField(Ingredient, through='RecipeIngredient')
-    tag = models.ManyToManyField(Tag)
-    time = models.IntegerField()
+    tags = models.ManyToManyField(Tag)
+    cooking_time = models.IntegerField()
 
     class Meta:
         verbose_name = 'Рецепт'

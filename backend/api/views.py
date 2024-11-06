@@ -3,8 +3,8 @@ from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .serializers import IngredientSerializer, TagSerializer
-from recipes.models import Ingredient, Tag
+from .serializers import IngredientSerializer, RecipeReadSerializer, RecipeWriteSerializer, TagSerializer
+from recipes.models import Ingredient, Recipe, Tag
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
@@ -18,4 +18,9 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    ...
+    queryset = Recipe.objects.all()
+
+    def get_serializer_class(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return RecipeWriteSerializer
+        return RecipeReadSerializer
