@@ -40,10 +40,10 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}, 'is_subscribed': {'read_only': True}}
     
     def get_is_subscribed(self, obj):
-        user = self.context.get('request').user
-        if not user.is_anonymous:
-            return Subscriptions.objects.filter(user=user, author=obj).exists()
-        return False
+        request = self.context.get('request')
+        if request is None or request.user.is_anonymous:
+            return False
+        return Subscriptions.objects.filter(user=request.user, author=obj).exists()
     
     def update(self, instance, validated_data):
         instance.avatar = validated_data.get('avatar', instance.avatar)
