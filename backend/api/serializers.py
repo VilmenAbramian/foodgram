@@ -157,4 +157,3 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         instance.tags.set(tags)
 
         return super().update(instance, validated_data)
-        # return {'mamu ebal': validated_data}
