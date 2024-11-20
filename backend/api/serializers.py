@@ -1,6 +1,8 @@
 import base64
 from django.core.files.base import ContentFile
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
 from recipes.models import Ingredient, RecipeIngredient, Recipe, Tag
 from users.serializers import UserSerializer
@@ -88,10 +90,9 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
     '''
     Serializer для модели Recipe - запись, обновление, удаление данных
     '''
-    # author = serializers.CharField(default=serializers.CurrentUserDefault())
     author = serializers.HiddenField(
         default=serializers.CurrentUserDefault())
-    image = Base64ImageField(required=False, allow_null=True)
+    image = Base64ImageField(required=True, allow_null=False)
 
     ingredients = AddIngredientSerializer(many=True, write_only=True)
 
@@ -99,6 +100,28 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         model = Recipe
         fields = ('id', 'author', 'tags', 'ingredients',
                   'name', 'image', 'text', 'cooking_time')
+
+    def validate_ingredients(self, ingredients):
+        if not ingredients or len(ingredients) == 0:
+            raise ValidationError('В рецепте должен быть хотя бы один ингредиент!')
+        ingredients_list = []
+        for item in ingredients:
+            if item in ingredients_list:
+                raise ValidationError('В рецепте не может быть повторяющихся элементов!')
+            if item['amount'] <= 0:
+                raise ValidationError('Количество ингредиента должно быть больше 0!')
+            ingredients_list.append(item)
+        return ingredients
+
+    def validate_tags(self, tags):
+        if not tags or len(tags) == 0:
+            raise ValidationError('В рецепте должен быть хотя бы один тег!')
+        tags_list = []
+        for item in tags:
+            if item in tags_list:
+                raise ValidationError('В рецепте не может быть повторяющихся элементов!')
+            tags_list.append(item)
+        return tags
 
     def to_representation(self, recipe_obj):
         serializer = RecipeReadSerializer(recipe_obj)
@@ -120,3 +143,18 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             )
         recipe.tags.set(tags)
         return recipe
+
+    def update(self, instance, validated_data):
+        instance.ingredients.clear()
+        ingredients = validated_data.pop('ingredients')
+        for ingredient in ingredients:
+            RecipeIngredient.objects.update_or_create(
+                recipe=instance,
+                ingredient=ingredient['id'],
+                amount=ingredient['amount']
+            )
+        tags = validated_data.pop('tags')
+        instance.tags.set(tags)
+
+        return super().update(instance, validated_data)
+        # return {'mamu ebal': validated_data}
