@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator
 from django.db import models
 
 from users.models import User
@@ -19,6 +20,7 @@ class Ingredient(models.Model):
     
     def __str__(self):
         return self.name
+
 
 class Tag(models.Model):
     name = models.CharField(
@@ -56,9 +58,12 @@ class Recipe(models.Model):
     text = models.TextField()
     ingredients = models.ManyToManyField(Ingredient, through='RecipeIngredient')
     tags = models.ManyToManyField(Tag)
-    cooking_time = models.IntegerField()
+    cooking_time = models.IntegerField(
+        validators=[MinValueValidator(1.0)]
+    )
 
     class Meta:
+        ordering = ['-id']
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
 
