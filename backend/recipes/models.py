@@ -82,8 +82,16 @@ class RecipeIngredient(models.Model):
 
 
 class ShoppingList(models.Model):
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='shopping_list'
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='shopping_list'
+    )
 
 
 class FavoriteRecipes(models.Model):
