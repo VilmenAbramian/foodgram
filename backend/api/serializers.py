@@ -5,6 +5,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from recipes.models import Ingredient, RecipeIngredient, Recipe, Tag
+from users.models import Subscriptions, User
 from users.serializers import UserSerializer
 
 
@@ -157,3 +158,38 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         instance.tags.set(tags)
 
         return super().update(instance, validated_data)
+
+
+class RecipeMiniSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+
+
+class SubscriptionsSerializer(serializers.ModelSerializer):
+    is_subscribed = serializers.SerializerMethodField()
+    avatar = Base64ImageField(required=False, allow_null=True)
+    recipes_count = serializers.SerializerMethodField()
+    recipes = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = (
+            'id', 'username', 'first_name',
+            'last_name', 'email', 'is_subscribed',
+            'avatar', 'recipes_count', 'recipes'
+        )
+
+    def get_is_subscribed(self, author):
+        return Subscriptions.objects.filter(user=self.context['request'].user, author=author).exists()
+
+    def get_recipes_count(self, author):
+        recipes = Recipe.objects.filter(author=author)
+        return len(recipes)
+
+    def get_recipes(self, author):
+        recipes = Recipe.objects.filter(author=author)
+        recipes_limit = self.context.get('limit', 0)
+        if recipes_limit:
+            recipes = recipes[:recipes_limit]
+        return RecipeMiniSerializer(recipes, many=True).data

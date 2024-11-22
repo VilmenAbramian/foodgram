@@ -48,4 +48,4 @@ class UserSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         instance.avatar = validated_data.get('avatar', instance.avatar)
         instance.save()
-        return instance 
+        return instance
