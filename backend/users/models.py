@@ -31,3 +31,11 @@ class User(AbstractUser):
 class Subscriptions(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='follower',)
     author = models.ForeignKey(User,  on_delete=models.CASCADE, related_name='followed',)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=('user', 'author'),
+                name='unique_subscribe'
+            )
+        ]

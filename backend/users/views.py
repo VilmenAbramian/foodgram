@@ -6,8 +6,9 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from users.models import User
-from users.serializers import UserSerializer, CreateUserSerializer
+from api.serializers import SubscriptionsSerializer
+from users.models import Subscriptions, User
+from users.serializers import CreateUserSerializer, UserSerializer
 
 class MyPagePagination(PageNumberPagination):
     page_size_query_param = 'limit'
@@ -47,18 +48,42 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response('Пароль успешно изменён', status=status.HTTP_204_NO_CONTENT)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True)
+    @action(detail=True,
+            methods=['post'],
+            permission_classes=[IsAuthenticated])
     def subscribe(self, request, *args, **kwargs):
         '''Создать и/или удалить подписку'''
-        user = self.request.user
         author = get_object_or_404(User, id=self.kwargs.get('pk'))
-        if request.method == 'POST':
-            ...
+        recipes_limit = request.query_params.get('recipes_limit', None)
+        if recipes_limit is not None:
+            recipes_limit = int(recipes_limit)
+        if self.request.user == author:
+            return Response(
+                'Подписка на себя невозможна!',
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if Subscriptions.objects.filter(user=self.request.user, author=author).exists():
+            return Response(
+                {'detail': 'Вы уже подписаны на этого пользователя!'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        Subscriptions.objects.create(user=self.request.user, author=author)
+        serializer = SubscriptionsSerializer(author, context={'request': request, 'limit': recipes_limit})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False)
     def subscriptions(self, request):
         '''Отобразить все подписки пользователя'''
-        ...
+        recipes_limit = request.query_params.get('recipes_limit', None)
+        if recipes_limit is not None:
+            recipes_limit = int(recipes_limit)
+
+        subscriptions = Subscriptions.objects.filter(user=self.request.user)
+        user_subscriptions = [subscription.author for subscription in subscriptions]
+        pages = self.paginate_queryset(user_subscriptions)
+        serializer = SubscriptionsSerializer(pages, many=True, context={'request': request, 'limit': recipes_limit})
+        # return {'mamu ebal': request.user}
+        return self.get_paginated_response(serializer.data)
 
     @action(detail=True,
             methods=['get', 'post', 'put', 'delete'],
