@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
@@ -14,7 +16,11 @@ from .serializers import (
     RecipeWriteSerializer,
     TagSerializer
 )
-from recipes.models import Ingredient, Recipe, ShoppingList, Tag
+from recipes.models import (
+    Ingredient, Recipe,
+    RecipeIngredient, ShoppingList,
+    Tag
+)
 from users.models import User
 
 
@@ -96,8 +102,29 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def download_shopping_cart(self, request):
         author = User.objects.get(id=request.user.pk)
         if author.shopping_list.exists():
-            return 'Make me'
+            shopping_list = shopping_cart(request, author)
+            return Response(
+                shopping_list,
+                status=status.HTTP_200_OK
+            )
         return Response(
             'Список покупок пуст!',
             status=status.HTTP_404_NOT_FOUND
         )
+
+
+def shopping_cart(request, author):
+    shopping_list = ShoppingList.objects.filter(author=author)
+    recipes = [item.recipe for item in shopping_list]
+    all_ingredients = defaultdict(float)
+    for recipe in recipes:
+        for recipe_ingredient in recipe.recipe_ingredients.all():
+            ingredient = recipe_ingredient.ingredient
+            all_ingredients[(ingredient.name, ingredient.measurement_unit)] += recipe_ingredient.amount
+
+    text_version = '\n'.join(
+        f'{name} - {amount} ({unit})'
+        for (name, unit), amount in all_ingredients.items()
+    )
+
+    return text_version
