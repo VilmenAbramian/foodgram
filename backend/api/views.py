@@ -17,9 +17,9 @@ from .serializers import (
     TagSerializer
 )
 from recipes.models import (
-    Ingredient, Recipe,
-    RecipeIngredient, ShoppingList,
-    Tag
+    Ingredient, FavoriteRecipes,
+    Recipe, RecipeIngredient,
+    ShoppingList, Tag
 )
 from users.models import User
 
@@ -112,6 +112,24 @@ class RecipeViewSet(viewsets.ModelViewSet):
             status=status.HTTP_404_NOT_FOUND
         )
 
+    @action(detail=True,
+            methods=('post', 'delete'),
+            permission_classes=(IsAuthenticated,))
+    def favorite(self, request, *args, **kwargs):
+        recipe = get_object_or_404(Recipe, id=kwargs.get('pk'))
+        user = self.request.user
+        if request.method == 'POST':
+            if FavoriteRecipes.objects.filter(author=user, recipe=recipe).exists():
+                return Response(
+                    'Рецепт уже существует!',
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            FavoriteRecipes.objects.create(author=user, recipe=recipe)
+            return Response(
+                RecipeMiniSerializer(recipe).data,
+                status=status.HTTP_201_CREATED
+            )
+            
 
 def shopping_cart(request, author):
     shopping_list = ShoppingList.objects.filter(author=author)
