@@ -12,6 +12,22 @@ class RecipeFilter(django_filters.FilterSet):
         to_field_name='slug',
         queryset=Tag.objects.all(),
     )
+    is_in_shopping_cart = django_filters.NumberFilter(
+        method='filter_is_in_shopping_cart'
+    )
+    is_favorited = django_filters.NumberFilter(
+        method='filter_is_favorited'
+    )
     class Meta:
         model = Recipe
-        fields = ['author', 'tags']
+        fields = ['author', 'tags', 'is_in_shopping_cart']
+
+    def filter_is_in_shopping_cart(self, queryset, name, value):
+        if self.request.user.is_authenticated and value:
+            return queryset.filter(shopping_list__author=self.request.user)
+        return queryset
+    
+    def filter_is_favorited(self, queryset, name, value):
+        if self.request.user.is_authenticated and value:
+            return queryset.filter(favorite__author=self.request.user)
+        return queryset

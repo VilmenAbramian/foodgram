@@ -68,6 +68,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
             )
         return super().partial_update(request, *args, **kwargs)
     
+
+    def destroy(self, request, *args, **kwargs):
+        recipe = get_object_or_404(Recipe, id=kwargs['pk'])
+        if recipe.author != request.user:
+            return Response(
+                'Вы не можете удалить чужой рецепт!',
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
+
+
     @action(detail=True,
             methods=['get'],
             url_path='get-link'
@@ -83,19 +94,29 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def shopping_cart(self, request, **kwargs):
         recipe = get_object_or_404(Recipe, id=kwargs.get('pk'))
         user = self.request.user
-        if ShoppingList.objects.filter(
-            author=user, recipe=recipe
-        ).exists():
+        if request.method == 'POST':
+            if ShoppingList.objects.filter(
+                author=user, recipe=recipe
+            ).exists():
+                return Response(
+                    'Рецепт уже добавлен!',
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            serializer = RecipeMiniSerializer(recipe)
+            ShoppingList.objects.create(author=user, recipe=recipe)
             return Response(
-                'Рецепт уже добавлен!',
-                status=status.HTTP_400_BAD_REQUEST
+                serializer.data,
+                status=status.HTTP_201_CREATED
             )
-        serializer = RecipeMiniSerializer(recipe)
-        ShoppingList.objects.create(author=user, recipe=recipe)
-        return Response(
-            serializer.data,
-            status=status.HTTP_201_CREATED
-        )
+        if request.method == 'DELETE':
+            shopping_item = ShoppingList.objects.filter(author=user, recipe=recipe).first()
+            if not shopping_item:
+                return Response(
+                    {'error': 'Рецепт не найден в корзине!'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            shopping_item.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False,
             permission_classes=(IsAuthenticated,))
@@ -129,6 +150,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 RecipeMiniSerializer(recipe).data,
                 status=status.HTTP_201_CREATED
             )
+        favorite = FavoriteRecipes.objects.filter(author=user, recipe=recipe)
+        if not favorite.exists():
+            return Response(
+                {'error': 'Рецепт не найден в избранном!'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        favorite.delete()
+        return Response(
+            {'message': 'Рецепт удалён из избранного!'},
+            status=status.HTTP_204_NO_CONTENT
+        )
             
 
 def shopping_cart(request, author):
