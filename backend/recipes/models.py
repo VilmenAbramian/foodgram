@@ -7,7 +7,7 @@ from users.models import User
 class Ingredient(models.Model):
     name = models.CharField(
         max_length=128,
-        verbose_name = 'Название ингредиента',
+        verbose_name='Название ингредиента',
         help_text='Введите название ингредиента')
     measurement_unit = models.CharField(
         max_length=8,
@@ -17,7 +17,7 @@ class Ingredient(models.Model):
     class Meta:
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
-    
+
     def __str__(self):
         return self.name
 
@@ -26,19 +26,19 @@ class Tag(models.Model):
     name = models.CharField(
         max_length=64,
         unique=True,
-        verbose_name = 'Название тега',
+        verbose_name='Название тега',
         help_text='Введите название тега'
-        )
+    )
     slug = models.SlugField(
         unique=True,
-        verbose_name = 'Слаг тега',
+        verbose_name='Слаг тега',
         help_text='Введите слаг тега'
-        )
+    )
     color = models.CharField(
         max_length=64,
-        verbose_name = 'Цвет тега',
+        verbose_name='Цвет тега',
         help_text='Введите значение цвета тега'
-        )
+    )
 
     class Meta:
         verbose_name = 'Тег'
@@ -56,7 +56,9 @@ class Recipe(models.Model):
     name = models.CharField(max_length=256)
     image = models.ImageField(upload_to='media/')
     text = models.TextField()
-    ingredients = models.ManyToManyField(Ingredient, through='RecipeIngredient')
+    ingredients = models.ManyToManyField(
+        Ingredient, through='RecipeIngredient'
+    )
     tags = models.ManyToManyField(Tag)
     cooking_time = models.IntegerField(
         validators=[MinValueValidator(1.0)]
@@ -98,5 +100,9 @@ class ShoppingList(models.Model):
 
 
 class FavoriteRecipes(models.Model):
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorite',)
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='favorite',)
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='favorite'
+    )
+    recipe = models.ForeignKey(
+        Recipe, on_delete=models.CASCADE, related_name='favorite'
+    )

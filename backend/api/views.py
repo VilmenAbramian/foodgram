@@ -4,7 +4,9 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import (
+    IsAuthenticated, IsAuthenticatedOrReadOnly
+)
 from rest_framework.response import Response
 
 from .filters import RecipeFilter
@@ -18,8 +20,7 @@ from .serializers import (
 )
 from recipes.models import (
     Ingredient, FavoriteRecipes,
-    Recipe, RecipeIngredient,
-    ShoppingList, Tag
+    Recipe, ShoppingList, Tag
 )
 from users.models import User
 
@@ -49,7 +50,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return RecipeReadSerializer
 
     def partial_update(self, request, *args, **kwargs):
-        obj = get_object_or_404(Recipe, pk=kwargs['pk'])
+        get_object_or_404(Recipe, pk=kwargs['pk'])
 
         if 'ingredients' not in request.data:
             return Response(
@@ -67,7 +68,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         return super().partial_update(request, *args, **kwargs)
-    
 
     def destroy(self, request, *args, **kwargs):
         recipe = get_object_or_404(Recipe, id=kwargs['pk'])
@@ -78,16 +78,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
             )
         return super().destroy(request, *args, **kwargs)
 
-
     @action(detail=True,
             methods=['get'],
-            url_path='get-link'
-        )
+            url_path='get-link')
     def get_link(self, *args, **kwargs):
         return Response(
             {'short-link': f'https://example.com/recipes/{kwargs}'}
         )
-    
+
     @action(detail=True,
             methods=('post', 'delete'),
             permission_classes=(IsAuthenticated,))
@@ -109,7 +107,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_201_CREATED
             )
         if request.method == 'DELETE':
-            shopping_item = ShoppingList.objects.filter(author=user, recipe=recipe).first()
+            shopping_item = ShoppingList.objects.filter(
+                author=user, recipe=recipe
+            ).first()
             if not shopping_item:
                 return Response(
                     {'error': 'Рецепт не найден в корзине!'},
@@ -140,7 +140,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, id=kwargs.get('pk'))
         user = self.request.user
         if request.method == 'POST':
-            if FavoriteRecipes.objects.filter(author=user, recipe=recipe).exists():
+            if FavoriteRecipes.objects.filter(
+                author=user, recipe=recipe
+            ).exists():
                 return Response(
                     'Рецепт уже существует!',
                     status=status.HTTP_400_BAD_REQUEST
@@ -161,7 +163,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             {'message': 'Рецепт удалён из избранного!'},
             status=status.HTTP_204_NO_CONTENT
         )
-            
+
 
 def shopping_cart(request, author):
     shopping_list = ShoppingList.objects.filter(author=author)
@@ -170,7 +172,9 @@ def shopping_cart(request, author):
     for recipe in recipes:
         for recipe_ingredient in recipe.recipe_ingredients.all():
             ingredient = recipe_ingredient.ingredient
-            all_ingredients[(ingredient.name, ingredient.measurement_unit)] += recipe_ingredient.amount
+            all_ingredients[(
+                ingredient.name, ingredient.measurement_unit
+            )] += recipe_ingredient.amount
 
     text_version = '\n'.join(
         f'{name} - {amount} ({unit})'
