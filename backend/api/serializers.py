@@ -1,10 +1,13 @@
 import base64
 from django.core.files.base import ContentFile
-from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from recipes.models import FavoriteRecipes, Ingredient, RecipeIngredient, Recipe, ShoppingList, Tag
+from recipes.models import (
+    FavoriteRecipes, Ingredient,
+    RecipeIngredient, Recipe,
+    ShoppingList, Tag
+)
 from users.models import Subscriptions, User
 from users.serializers import UserSerializer
 
@@ -108,13 +111,19 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
     def validate_ingredients(self, ingredients):
         if not ingredients or len(ingredients) == 0:
-            raise ValidationError('В рецепте должен быть хотя бы один ингредиент!')
+            raise ValidationError(
+                'В рецепте должен быть хотя бы один ингредиент!'
+            )
         ingredients_list = []
         for item in ingredients:
             if item in ingredients_list:
-                raise ValidationError('В рецепте не может быть повторяющихся элементов!')
+                raise ValidationError(
+                    'В рецепте не может быть повторяющихся элементов!'
+                )
             if item['amount'] <= 0:
-                raise ValidationError('Количество ингредиента должно быть больше 0!')
+                raise ValidationError(
+                    'Количество ингредиента должно быть больше 0!'
+                )
             ingredients_list.append(item)
         return ingredients
 
@@ -124,7 +133,9 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         tags_list = []
         for item in tags:
             if item in tags_list:
-                raise ValidationError('В рецепте не может быть повторяющихся элементов!')
+                raise ValidationError(
+                    'В рецепте не может быть повторяющихся элементов!'
+                )
             tags_list.append(item)
         return tags
 
@@ -191,7 +202,9 @@ class SubscriptionsSerializer(serializers.ModelSerializer):
         )
 
     def get_is_subscribed(self, author):
-        return Subscriptions.objects.filter(user=self.context['request'].user, author=author).exists()
+        return Subscriptions.objects.filter(
+            user=self.context['request'].user, author=author
+        ).exists()
 
     def get_recipes_count(self, author):
         recipes = Recipe.objects.filter(author=author)

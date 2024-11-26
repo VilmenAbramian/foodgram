@@ -10,6 +10,7 @@ from api.serializers import SubscriptionsSerializer
 from users.models import Subscriptions, User
 from users.serializers import CreateUserSerializer, UserSerializer
 
+
 class MyPagePagination(PageNumberPagination):
     page_size_query_param = 'limit'
     page_size = 6
@@ -40,12 +41,15 @@ class UserViewSet(viewsets.ModelViewSet):
         '''Изменить пароль'''
         serializer = SetPasswordSerializer(
             data=request.data,
-            context={'request':request}
+            context={'request': request}
         )
         if serializer.is_valid(raise_exception=True):
             self.request.user.set_password(serializer.data['new_password'])
             self.request.user.save()
-            return Response('Пароль успешно изменён', status=status.HTTP_204_NO_CONTENT)
+            return Response(
+                'Пароль успешно изменён',
+                status=status.HTTP_204_NO_CONTENT
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True,
@@ -63,16 +67,22 @@ class UserViewSet(viewsets.ModelViewSet):
                     'Подписка на себя невозможна!',
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            if Subscriptions.objects.filter(user=self.request.user, author=author).exists():
+            if Subscriptions.objects.filter(
+                user=self.request.user, author=author
+            ).exists():
                 return Response(
                     {'detail': 'Вы уже подписаны на этого пользователя!'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             Subscriptions.objects.create(user=self.request.user, author=author)
-            serializer = SubscriptionsSerializer(author, context={'request': request, 'limit': recipes_limit})
+            serializer = SubscriptionsSerializer(
+                author, context={'request': request, 'limit': recipes_limit}
+            )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         if request.method == 'DELETE':
-            if not Subscriptions.objects.filter(user=self.request.user, author=author).exists():
+            if not Subscriptions.objects.filter(
+                user=self.request.user, author=author
+            ).exists():
                 return Response(
                     'Нельзя отписаться от несуществующей подписки!',
                     status=status.HTTP_400_BAD_REQUEST
@@ -91,10 +101,14 @@ class UserViewSet(viewsets.ModelViewSet):
             recipes_limit = int(recipes_limit)
 
         subscriptions = Subscriptions.objects.filter(user=self.request.user)
-        user_subscriptions = [subscription.author for subscription in subscriptions]
+        user_subscriptions = [
+            subscription.author for subscription in subscriptions
+        ]
         pages = self.paginate_queryset(user_subscriptions)
-        serializer = SubscriptionsSerializer(pages, many=True, context={'request': request, 'limit': recipes_limit})
-        # return {'mamu ebal': request.user}
+        serializer = SubscriptionsSerializer(
+            pages, many=True,
+            context={'request': request, 'limit': recipes_limit}
+        )
         return self.get_paginated_response(serializer.data)
 
     @action(detail=True,
@@ -104,7 +118,10 @@ class UserViewSet(viewsets.ModelViewSet):
         '''Добавить или изменить аватар пользователя'''
         user = self.request.user
         if request.method == 'DELETE':
-            return Response('Изображение профиля успешно удалено', status=status.HTTP_204_NO_CONTENT)
+            return Response(
+                'Изображение профиля успешно удалено',
+                status=status.HTTP_204_NO_CONTENT
+            )
         serializer = UserSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         new_avatar = serializer.validated_data.get('avatar')

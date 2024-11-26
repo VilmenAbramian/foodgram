@@ -18,6 +18,7 @@ class RecipeFilter(django_filters.FilterSet):
     is_favorited = django_filters.NumberFilter(
         method='filter_is_favorited'
     )
+
     class Meta:
         model = Recipe
         fields = ['author', 'tags', 'is_in_shopping_cart']
@@ -26,7 +27,7 @@ class RecipeFilter(django_filters.FilterSet):
         if self.request.user.is_authenticated and value:
             return queryset.filter(shopping_list__author=self.request.user)
         return queryset
-    
+
     def filter_is_favorited(self, queryset, name, value):
         if self.request.user.is_authenticated and value:
             return queryset.filter(favorite__author=self.request.user)
