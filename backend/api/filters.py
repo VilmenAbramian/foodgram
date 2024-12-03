@@ -1,7 +1,12 @@
 import django_filters
+from rest_framework.filters import SearchFilter
 
 from recipes.models import Recipe, Tag
 from users.models import User
+
+
+class IngredientSearchFilter(SearchFilter):
+    search_param = 'name'
 
 
 class RecipeFilter(django_filters.FilterSet):
@@ -21,7 +26,7 @@ class RecipeFilter(django_filters.FilterSet):
 
     class Meta:
         model = Recipe
-        fields = ['author', 'tags', 'is_in_shopping_cart']
+        fields = ['author', 'tags', 'is_in_shopping_cart', 'is_favorited']
 
     def filter_is_in_shopping_cart(self, queryset, name, value):
         if self.request.user.is_authenticated and value:

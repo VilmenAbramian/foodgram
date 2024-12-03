@@ -9,13 +9,21 @@ services:
   db:
     image: postgres:13
     env_file: .env
+    ports:
+      - 6432:5443
     volumes:
       - pg_data:/var/lib/postgresql/data
+
   backend:
     build: ./backend/
     env_file: .env
+    ports:
+      - 8080:7080
+    depends_on:
+      - db
     volumes:
       - static:/backend_static
+      - ./media:/app/media
 
   frontend:
     env_file: .env
@@ -27,7 +35,10 @@ services:
   gateway:
     build: ./gateway/
     env_file: .env
+    depends_on:
+      - backend
     volumes:
       - static:/staticfiles
+      - ./media:/media
     ports:
-      - 8000:80
+      - 7080:80
