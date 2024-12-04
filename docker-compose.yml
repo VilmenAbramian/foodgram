@@ -4,6 +4,7 @@ version: '3'
 volumes:
   pg_data:
   static:
+  media:
 
 services:
   db:
@@ -23,7 +24,7 @@ services:
       - db
     volumes:
       - static:/backend_static
-      - ./media:/app/media
+      - media:/app/media
 
   frontend:
     env_file: .env
@@ -39,6 +40,6 @@ services:
       - backend
     volumes:
       - static:/staticfiles
-      - ./media:/media
+      - media:/app/media
     ports:
       - 7080:80

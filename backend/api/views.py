@@ -5,12 +5,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework import permissions
-from rest_framework.permissions import (
-    IsAuthenticated, IsAuthenticatedOrReadOnly
-)
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .filters import IngredientSearchFilter, RecipeFilter
+from .filters import RecipeFilter
 from .paginations import ApiPagination
 from .serializers import (
     IngredientSerializer,
@@ -61,7 +59,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if self.action in ["create", "update", "partial_update", "destroy"]:
             return RecipeWriteSerializer
         return RecipeReadSerializer
-
 
     def partial_update(self, request, *args, **kwargs):
         get_object_or_404(Recipe, pk=kwargs['pk'])
