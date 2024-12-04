@@ -2,7 +2,7 @@ version: '3'
 
 volumes:
   pg_data_production:
-  static_volume:
+  static:
   media:
 
 services:
@@ -18,15 +18,15 @@ services:
     depends_on:
       - db
     volumes:
-      - static_volume:/backend_static
-      - media:/backend/media
+      - static:/backend_static
+      - media:/app/media
 
   frontend:
     image: vilmena/foodgram_frontend
     env_file: .env
     command: cp -r /app/build/. /frontend_static/
     volumes:
-      - static_volume:/frontend_static
+      - static:/frontend_static
 
   gateway:
     image: vilmena/foodgram_gateway
@@ -34,7 +34,7 @@ services:
     depends_on:
       - backend
     volumes:
-      - static_volume:/staticfiles/
-      - media:/media/
+      - static:/staticfiles
+      - media:/app/media
     ports:
       - 7080:80

@@ -137,6 +137,7 @@ class ShoppingList(models.Model):
             )
         ]
 
+
 class FavoriteRecipes(models.Model):
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='favorite'
