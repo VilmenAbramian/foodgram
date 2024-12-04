@@ -63,7 +63,7 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_NAME }}/foodgram_gateway:latest
 
-deploy:
+  deploy:
     runs-on: ubuntu-latest
     needs:
       - build_backend_and_push_to_docker_hub
