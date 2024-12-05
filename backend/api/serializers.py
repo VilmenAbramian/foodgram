@@ -95,6 +95,11 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         fields = ('id', 'author', 'tags', 'ingredients',
                   'name', 'image', 'text', 'cooking_time')
 
+    def validate(self, serializer_data):
+        if 'image' not in serializer_data or serializer_data['image'] is None:
+            raise serializers.ValidationError('Поле "image" обязательно для заполнения!')
+        return serializer_data
+
     def validate_ingredients(self, ingredients):
         if not ingredients or len(ingredients) == 0:
             raise ValidationError(
@@ -165,28 +170,15 @@ class RecipeMiniSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'image', 'cooking_time')
 
 
-class SubscriptionsSerializer(serializers.ModelSerializer):
-    is_subscribed = serializers.SerializerMethodField()
-    avatar = Base64ImageField(required=False, allow_null=True)
-    recipes_count = serializers.SerializerMethodField()
+class SubscriptionsSerializer(UserSerializer):
+    recipes_count = serializers.IntegerField(source='recipes.count', read_only=True)
     recipes = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = (
-            'id', 'username', 'first_name',
-            'last_name', 'email', 'is_subscribed',
-            'avatar', 'recipes_count', 'recipes'
+        fields = UserSerializer.Meta.fields + (
+            'recipes_count', 'recipes'
         )
-
-    def get_is_subscribed(self, author):
-        return Subscriptions.objects.filter(
-            user=self.context['request'].user, author=author
-        ).exists()
-
-    def get_recipes_count(self, author):
-        recipes = Recipe.objects.filter(author=author)
-        return len(recipes)
 
     def get_recipes(self, author):
         recipes = Recipe.objects.filter(author=author)
