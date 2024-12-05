@@ -2,7 +2,7 @@ import django_filters
 from rest_framework.filters import SearchFilter
 
 from recipes.models import Recipe, Tag
-from users.models import User
+from recipes.models import User
 
 
 class IngredientSearchFilter(SearchFilter):
@@ -11,7 +11,8 @@ class IngredientSearchFilter(SearchFilter):
 
 class RecipeFilter(django_filters.FilterSet):
     author = django_filters.ModelChoiceFilter(
-        queryset=User.objects.all())
+        queryset=User.objects.all()
+    )
     tags = django_filters.ModelMultipleChoiceFilter(
         field_name='tags__slug',
         to_field_name='slug',
@@ -28,12 +29,12 @@ class RecipeFilter(django_filters.FilterSet):
         model = Recipe
         fields = ['author', 'tags', 'is_in_shopping_cart', 'is_favorited']
 
-    def filter_is_in_shopping_cart(self, queryset, name, value):
+    def filter_is_in_shopping_cart(self, recipes, name, value):
         if self.request.user.is_authenticated and value:
-            return queryset.filter(shopping_list__author=self.request.user)
-        return queryset
+            return recipes.filter(shopping_list__author=self.request.user)
+        return recipes
 
-    def filter_is_favorited(self, queryset, name, value):
+    def filter_is_favorited(self, recipes, name, value):
         if self.request.user.is_authenticated and value:
-            return queryset.filter(favorite__author=self.request.user)
-        return queryset
+            return recipes.filter(favorite__author=self.request.user)
+        return recipes

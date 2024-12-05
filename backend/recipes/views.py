@@ -7,8 +7,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from api.serializers import SubscriptionsSerializer
-from users.models import Subscriptions, User
-from users.serializers import CreateUserSerializer, UserSerializer
+from .models import Subscriptions, User
+from recipes.serializers import CreateUserSerializer, UserSerializer
 
 
 class MyPagePagination(PageNumberPagination):

@@ -21,7 +21,7 @@ from recipes.models import (
     Ingredient, FavoriteRecipes,
     Recipe, ShoppingList, Tag
 )
-from users.models import User
+from recipes.models import User
 
 
 class IsOwnerOrAdminOrReadOnly(permissions.BasePermission):
