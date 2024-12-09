@@ -1,59 +1,34 @@
-import base64
-import re
-from django.core.files.base import ContentFile
+from drf_extra_fields.fields import Base64ImageField
+from djoser.serializers import (
+    UserCreateSerializer,
+    UserSerializer as DjoserUserSerializer
+)
 from rest_framework import serializers
 
 from .models import Subscriptions, User
 
 
-class CreateUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = (
-            'email', 'id', 'username', 'first_name', 'last_name', 'password'
-        )
-        extra_kwargs = {'password': {'write_only': True}}
+class CustomUserCreateSerializer(UserCreateSerializer):
+    avatar = serializers.ImageField(required=False, allow_null=True)
 
-    def validate_username(self, username):
-        if not re.match('^[\\w.@+-]+\\Z', username):
-            raise serializers.ValidationError('Invalid username!')
-        return username
-
-    def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+    class Meta(UserCreateSerializer.Meta):
+        fields = UserCreateSerializer.Meta.fields + ('avatar',)
 
 
-class Base64ImageField(serializers.ImageField):
-    def to_internal_value(self, data):
-        if isinstance(data, str) and data.startswith('data:image'):
-            format, imgstr = data.split(';base64,')
-            ext = format.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
-
-        return super().to_internal_value(data)
-
-
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(DjoserUserSerializer):
     avatar = Base64ImageField(required=False, allow_null=True)
     is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = (
-            'id', 'username', 'first_name', 'last_name', 'email',
-            'is_subscribed', 'avatar',
-        )
-        extra_kwargs = {
-            'password': {'write_only': True},
-            'is_subscribed': {'read_only': True}
-        }
+        fields = DjoserUserSerializer.Meta.fields + ('avatar', 'is_subscribed')
 
-    def get_is_subscribed(self, obj):
+    def get_is_subscribed(self, user):
         request = self.context.get('request')
         if request is None or request.user.is_anonymous:
             return False
         return Subscriptions.objects.filter(
-            user=request.user, author=obj
+            user=request.user, author=user
         ).exists()
 
     def update(self, instance, validated_data):
