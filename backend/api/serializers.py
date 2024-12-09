@@ -7,7 +7,7 @@ from recipes.models import (
     RecipeIngredient, Recipe,
     ShoppingList, Tag
 )
-from recipes.models import Subscriptions, User
+from recipes.models import User
 from recipes.serializers import UserSerializer
 
 
@@ -64,7 +64,9 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 
     def get_is_in_shopping_cart(self, recipe):
         user = self.context.get('request').user
-        return not user.is_anonymous and ShoppingList.objects.filter(recipe=recipe).exists()
+        return not user.is_anonymous and ShoppingList.objects.filter(
+            recipe=recipe
+        ).exists()
 
 
 class AddIngredientSerializer(serializers.ModelSerializer):
@@ -97,7 +99,9 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
     def validate(self, serializer_data):
         if 'image' not in serializer_data or serializer_data['image'] is None:
-            raise serializers.ValidationError('Поле "image" обязательно для заполнения!')
+            raise serializers.ValidationError(
+                'Поле "image" обязательно для заполнения!'
+            )
         return serializer_data
 
     def validate_ingredients(self, ingredients):
@@ -138,6 +142,10 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not request or not hasattr(request, 'user'):
             raise serializers.ValidationError('Автор рецепта не определён!')
+        if not request.user.is_authenticated:
+            raise serializers.ValidationError(
+                'Пользователь не аутентифицирован!'
+            )
         validated_data['author'] = request.user
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
@@ -147,7 +155,15 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
     def update(self, recipe, validated_data):
         ingredients = validated_data.pop('ingredients', [])
+        if not ingredients:
+            raise serializers.ValidationError(
+                {'ingredients': 'Это обязательное поле!'}
+            )
         tags = validated_data.pop('tags', [])
+        if not tags:
+            raise serializers.ValidationError(
+                {'tags': 'Это обязательное поле!'}
+            )
         recipe.recipe_ingredients.all().delete()
         self.write_data(recipe, ingredients, tags)
         return super().update(recipe, validated_data)
@@ -171,7 +187,9 @@ class RecipeMiniSerializer(serializers.ModelSerializer):
 
 
 class SubscriptionsSerializer(UserSerializer):
-    recipes_count = serializers.IntegerField(source='recipes.count', read_only=True)
+    recipes_count = serializers.IntegerField(
+        source='recipes.count', read_only=True
+    )
     recipes = serializers.SerializerMethodField()
 
     class Meta:

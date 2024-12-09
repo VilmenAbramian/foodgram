@@ -1,6 +1,10 @@
 name: Main Workflow
 
-on: push
+on:
+  push:
+    branches:
+      - deploy
+
 
 jobs:
   build_backend_and_push_to_docker_hub:

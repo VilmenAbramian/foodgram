@@ -58,6 +58,12 @@ INSTALLED_APPS = [
     'corsheaders',
 ]
 
+DJOSER = {
+    'SERIALIZERS': {
+        'user_create': 'recipes.serializers.CustomUserCreateSerializer',
+    }
+}
+
 AUTH_USER_MODEL = 'recipes.User'
 
 MIDDLEWARE = [
