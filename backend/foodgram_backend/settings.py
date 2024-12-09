@@ -58,11 +58,24 @@ INSTALLED_APPS = [
     'corsheaders',
 ]
 
+# ------------------------------------
+# Для работы с DJOSER-классами
+USER_SERIALIZER = 'recipes.serializers.CustomUserSerializer'
+
 DJOSER = {
     'SERIALIZERS': {
         'user_create': 'recipes.serializers.CustomUserCreateSerializer',
-    }
+        'user_list': USER_SERIALIZER,
+        'current_user': USER_SERIALIZER,
+        'user': USER_SERIALIZER,
+    },
+    'PERMISSIONS': {
+        'current_user': ('rest_framework.permissions.IsAuthenticated',),
+        'user': ('rest_framework.permissions.AllowAny',),
+        'user_list': ('rest_framework.permissions.AllowAny',),
+    },
 }
+# ------------------------------------
 
 AUTH_USER_MODEL = 'recipes.User'
 
