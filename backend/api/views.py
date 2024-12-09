@@ -53,7 +53,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filterset_class = RecipeFilter
 
     def get_serializer_class(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+        if self.action in ('create', 'update', 'partial_update', 'destroy'):
             return RecipeWriteSerializer
         return RecipeReadSerializer
 
@@ -63,7 +63,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             site_url = settings.ALLOWED_HOSTS[3]
         except IndexError:
             site_url = 'localhost'
-        short_link = f'{site_url}/recipes/{kwargs.get('pk')}'
+        short_link = f'{site_url}/recipes/{kwargs.get("pk")}'
         return Response({'short-link': short_link})
 
     @action(detail=True,
