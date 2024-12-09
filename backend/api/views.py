@@ -3,12 +3,13 @@ from django.conf import settings
 from django.db.models import Sum
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from djoser.views import UserViewSet as DjoserUserViewSet
+from djoser.views import UserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import (
+    AllowAny,
     IsAuthenticated,
     IsAuthenticatedOrReadOnly
 )
@@ -30,7 +31,7 @@ from recipes.models import (
     Recipe, ShoppingList, Tag, RecipeIngredient
 )
 from recipes.models import Subscriptions, User
-from recipes.serializers import UserSerializer, CustomUserCreateSerializer
+from recipes.serializers import CustomUserSerializer, CustomUserCreateSerializer
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -149,24 +150,20 @@ class PagePagination(PageNumberPagination):
     page_size = 6
 
 
-class UserViewSet(DjoserUserViewSet):
-    queryset = User.objects.all()
-    pagination_class = PagePagination
-
-    def get_serializer_class(self):
-        if self.action == 'create':
-            return CustomUserCreateSerializer
-        return UserSerializer
-
+class CustomUserViewSet(UserViewSet):
     @action(detail=False,
-            methods=('get', 'post'),
+            methods=('get',),
             permission_classes=(IsAuthenticated,))
     def me(self, request):
         return super().me(request)
 
+    def list(self, request, *args, **kwargs):
+        print(self.queryset)  # Отладочный вывод
+        return super().list(request, *args, **kwargs)
+
     @action(detail=True,
-            methods=['post', 'delete'],
-            permission_classes=[IsAuthenticated])
+            methods=('post', 'delete'),
+            permission_classes=(IsAuthenticated,))
     def subscribe(self, request, *args, **kwargs):
         '''Создать и/или удалить подписку'''
         author = get_object_or_404(User, id=self.kwargs.get('pk'))
@@ -213,8 +210,8 @@ class UserViewSet(DjoserUserViewSet):
         return self.get_paginated_response(serializer.data)
 
     @action(detail=True,
-            methods=('get', 'post', 'delete'),
-            permission_classes=[IsAuthenticated])
+            methods=('put', 'delete'),
+            permission_classes=(IsAuthenticated,))
     def avatar(self, request, *args, **kwargs):
         '''Добавить или изменить аватар пользователя'''
         user = self.request.user
@@ -226,7 +223,7 @@ class UserViewSet(DjoserUserViewSet):
                 'Изображение профиля успешно удалено',
                 status=status.HTTP_204_NO_CONTENT
             )
-        serializer = UserSerializer(data=request.data, partial=True)
+        serializer = CustomUserSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         new_avatar = serializer.validated_data.get('avatar')
         user.avatar = new_avatar

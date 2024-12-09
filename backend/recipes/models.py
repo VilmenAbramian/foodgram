@@ -8,44 +8,37 @@ MIN_VALUE = 1
 
 # ---- Модели для пользователя ----
 class User(AbstractUser):
-    '''
-    Кастомная модель пользователя
-    '''
-    username_validator = RegexValidator(
-        regex=r'^[\w.@+-]+\Z',
-    )
-    username = models.CharField(
-        max_length=150,
-        unique=True,
-        validators=(username_validator,),
-        verbose_name="Имя пользователя",
-    )
-    first_name = models.CharField(max_length=150)
-    last_name = models.CharField(max_length=150)
     email = models.EmailField(unique=True, max_length=254)
-    password = models.CharField(max_length=128)
     avatar = models.ImageField(
-        upload_to='users/images/',
+        upload_to='users/avatars/',
         null=True,
         default=None
     )
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ('username', 'password', 'first_name', 'last_name')
+    REQUIRED_FIELDS = ('username', 'first_name', 'last_name')
 
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+        ordering = ('id',)
 
 class Subscriptions(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='followers'
+        User, on_delete=models.CASCADE,
+        related_name='followers', verbose_name='Подписчик'
     )
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='followed_users'
+        User, on_delete=models.CASCADE,
+        related_name='followed_users', verbose_name='Автор'
     )
 
     class Meta:
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
         constraints = [
             models.UniqueConstraint(
                 fields=('user', 'author'),
-                name='unique_subscribe'
+                name='unique_subscription'
             )
         ]
 
