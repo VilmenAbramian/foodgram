@@ -8,7 +8,7 @@ from recipes.models import (
     ShoppingList, Tag
 )
 from recipes.models import User
-from recipes.serializers import UserSerializer
+from recipes.serializers import CustomUserSerializer
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -39,7 +39,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     '''
     Serializer для модели Recipe - чтение данных
     '''
-    author = UserSerializer()
+    author = CustomUserSerializer()
     ingredients = IngredientInRecipeSerializer(
         many=True,
         source='recipe_ingredients',
@@ -186,7 +186,7 @@ class RecipeMiniSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'image', 'cooking_time')
 
 
-class SubscriptionsSerializer(UserSerializer):
+class SubscriptionsSerializer(CustomUserSerializer):
     recipes_count = serializers.IntegerField(
         source='recipes.count', read_only=True
     )
@@ -194,8 +194,8 @@ class SubscriptionsSerializer(UserSerializer):
 
     class Meta:
         model = User
-        fields = UserSerializer.Meta.fields + (
-            'recipes_count', 'recipes'
+        fields = CustomUserSerializer.Meta.fields + (
+            'recipes_count', 'recipes',
         )
 
     def get_recipes(self, author):

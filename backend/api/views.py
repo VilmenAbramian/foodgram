@@ -7,15 +7,13 @@ from djoser.views import UserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import (
-    AllowAny,
     IsAuthenticated,
     IsAuthenticatedOrReadOnly
 )
 from rest_framework.response import Response
 
-from .filters import RecipeFilter
+from .filters import IngredientFilter, RecipeFilter
 from .paginations import ApiPagination
 from .permissions import IsOwnerOrReadOnly
 from .serializers import (
@@ -37,13 +35,16 @@ from recipes.serializers import CustomUserSerializer, CustomUserCreateSerializer
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    pagination_class = None
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter
     search_fields = ('^name',)
+    pagination_class = None
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -77,7 +78,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             permission_classes=(IsAuthenticated,))
     def download_shopping_cart(self, request):
         author = User.objects.get(id=request.user.pk)
-        if author.shopping_list.exists():
+        if ShoppingList.objects.filter(author=author).exists():
             shopping_list = shopping_cart(request, author)
             return Response(
                 shopping_list,
@@ -117,7 +118,7 @@ def favorite_and_cart(model, request, kwargs):
 
 def shopping_cart(request, author):
     ingredients = RecipeIngredient.objects.filter(
-        recipe__shopping_list__author=author
+        recipe__shoppinglist_related__author=author
     ).values(
         'ingredient__name', 'ingredient__measurement_unit', 'recipe__name'
     ).annotate(
@@ -145,28 +146,22 @@ def shopping_cart(request, author):
     # return ingredients
 
 
-class PagePagination(PageNumberPagination):
-    page_size_query_param = 'limit'
-    page_size = 6
-
-
 class CustomUserViewSet(UserViewSet):
+    def get_queryset(self):
+        return User.objects.all()
+
     @action(detail=False,
             methods=('get',),
             permission_classes=(IsAuthenticated,))
     def me(self, request):
         return super().me(request)
 
-    def list(self, request, *args, **kwargs):
-        print(self.queryset)  # Отладочный вывод
-        return super().list(request, *args, **kwargs)
-
     @action(detail=True,
             methods=('post', 'delete'),
             permission_classes=(IsAuthenticated,))
     def subscribe(self, request, *args, **kwargs):
         '''Создать и/или удалить подписку'''
-        author = get_object_or_404(User, id=self.kwargs.get('pk'))
+        author = get_object_or_404(User, id=kwargs.get('id'))
         recipes_limit = int(request.GET.get('recipes_limit', 10**10))
         if request.method == 'POST':
             if recipes_limit is not None:
@@ -202,7 +197,9 @@ class CustomUserViewSet(UserViewSet):
         user_subscriptions = Subscriptions.objects.filter(
             user=self.request.user
         ).values_list('author', flat=True)
-        pages = self.paginate_queryset(user_subscriptions)
+
+        authors = User.objects.filter(id__in=user_subscriptions)
+        pages = self.paginate_queryset(authors)
         serializer = SubscriptionsSerializer(
             pages, many=True,
             context={'request': request, 'limit': recipes_limit}
