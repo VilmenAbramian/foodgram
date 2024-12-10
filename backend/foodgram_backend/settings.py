@@ -60,11 +60,11 @@ INSTALLED_APPS = [
 
 # ------------------------------------
 # Для работы с DJOSER-классами
-USER_SERIALIZER = 'recipes.serializers.CustomUserSerializer'
+USER_SERIALIZER = 'api.serializers.CustomUserSerializer'
 
 DJOSER = {
     'SERIALIZERS': {
-        'user_create': 'recipes.serializers.CustomUserCreateSerializer',
+        'user_create': 'api.serializers.CustomUserCreateSerializer',
         'user_list': USER_SERIALIZER,
         'current_user': USER_SERIALIZER,
         'user': USER_SERIALIZER,
