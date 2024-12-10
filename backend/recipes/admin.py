@@ -13,27 +13,27 @@ class RecipeAdmin(admin.ModelAdmin):
     )
     list_filter = ('tags', 'author')
 
-    def get_tags(selfself, obj):
-        return ', '.join([tag.name for tag in obj.tags.all()])
+    def get_tags(self, recipe):
+        return ', '.join([tag.name for tag in recipe.tags.all()])
     get_tags.short_description = 'Теги'
 
-    def get_ingredients(self, obj):
+    def get_ingredients(self, recipe):
         return ', '.join(
             f'{ingredient.name} ({ingredient.measurement_unit})'
-            for ingredient in obj.ingredients.all()
+            for ingredient in recipe.ingredients.all()
         )
     get_ingredients.short_description = 'Ингредиенты'
 
-    def get_image(self, obj):
-        if obj.image:
+    def get_image(self, recipe):
+        if recipe.image:
             return mark_safe(
-                f'<img src="{obj.image.url}"'
+                f'<img src="{recipe.image.url}"'
                 f'style="max-width: 200px; max-height: 200px;" />'
             )
     get_image.short_description = 'Картинка'
 
-    def in_favorites(self, obj):
-        return obj.favorite.count()
+    def in_favorites(self, recipes):
+        return recipes.favoriterecipes_related.count()
     in_favorites.short_description = 'В избранном'
 
 
