@@ -17,19 +17,16 @@ from .filters import IngredientFilter, RecipeFilter
 from .paginations import ApiPagination
 from .permissions import IsOwnerOrReadOnly
 from .serializers import (
-    IngredientSerializer,
-    RecipeMiniSerializer,
-    RecipeReadSerializer,
-    RecipeWriteSerializer,
-    SubscriptionsSerializer,
+    CustomUserSerializer, IngredientSerializer,
+    RecipeMiniSerializer, RecipeReadSerializer,
+    RecipeWriteSerializer, SubscriptionsSerializer,
     TagSerializer
 )
 from recipes.models import (
     Ingredient, FavoriteRecipes,
-    Recipe, ShoppingList, Tag, RecipeIngredient
+    Recipe, ShoppingList, Subscriptions,
+    Tag, RecipeIngredient, User
 )
-from recipes.models import Subscriptions, User
-from recipes.serializers import CustomUserSerializer, CustomUserCreateSerializer
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
