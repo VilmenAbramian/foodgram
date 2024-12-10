@@ -95,7 +95,8 @@ class Tag(models.Model):
 class Recipe(models.Model):
     author = models.ForeignKey(
         User,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name='recipes'
     )
     name = models.CharField(max_length=256)
     image = models.ImageField(
@@ -165,10 +166,10 @@ class RecipeIngredient(models.Model):
 
 class UserRecipeRelation(models.Model):
     author = models.ForeignKey(
-        'User', on_delete=models.CASCADE, related_name='%(class)ss'
+        'User', on_delete=models.CASCADE, related_name='%(class)s_related'
     )
     recipe = models.ForeignKey(
-        'Recipe', on_delete=models.CASCADE, related_name='%(class)ss'
+        'Recipe', on_delete=models.CASCADE, related_name='%(class)s_related'
     )
 
     class Meta:
