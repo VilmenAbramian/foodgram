@@ -1,5 +1,5 @@
 from datetime import date
-from django.conf import settings
+
 from django.db.models import Sum
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -57,13 +57,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return RecipeReadSerializer
 
     @action(detail=True, url_path='get-link')
-    def get_link(self, *args, **kwargs):
-        try:
-            site_url = settings.ALLOWED_HOSTS[3]
-        except IndexError:
-            site_url = 'localhost'
-        short_link = f'{site_url}/recipes/{kwargs.get("pk")}'
-        return Response({'short-link': short_link})
+    def get_link(self, request, pk=None):
+        return Response({
+            'short-link': f'http://{request.get_host()}/s/{pk}'
+        })
 
     @action(detail=True,
             methods=('post', 'delete'),
@@ -74,9 +71,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(detail=False,
             permission_classes=(IsAuthenticated,))
     def download_shopping_cart(self, request):
-        author = User.objects.get(id=request.user.pk)
-        if ShoppingList.objects.filter(author=author).exists():
-            shopping_list = shopping_cart(request, author)
+        if ShoppingList.objects.filter(author=request.user).exists():
+            filling_basket = RecipeIngredient.objects.filter(
+                recipe__shoppinglist_related__author=request.user
+            ).values(
+                'ingredient__name', 'ingredient__measurement_unit',
+                'recipe__name'
+            ).annotate(
+                total_amount=Sum('amount')
+            )
+            shopping_list = shopping_cart(filling_basket)
             return Response(
                 shopping_list,
                 status=status.HTTP_200_OK
@@ -97,7 +101,7 @@ def favorite_and_cart(model, request, kwargs):
     recipe = get_object_or_404(Recipe, id=kwargs.get('pk'))
     user = request.user
     if request.method == 'POST':
-        object, created = model.objects.get_or_create(
+        _, created = model.objects.get_or_create(
             author=user, recipe=recipe
         )
         if not created:
@@ -113,34 +117,23 @@ def favorite_and_cart(model, request, kwargs):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-def shopping_cart(request, author):
-    ingredients = RecipeIngredient.objects.filter(
-        recipe__shoppinglist_related__author=author
-    ).values(
-        'ingredient__name', 'ingredient__measurement_unit', 'recipe__name'
-    ).annotate(
-        total_amount=Sum('amount')
-    )
+def shopping_cart(filling_basket):
     header = f"Список покупок от {date.today().strftime('%d.%m.%Y')}"
     products = 'Список ингредиентов\n:' + '\n'.join([
-        f'{i + 1}) {ingredient["ingredient__name"].capitalize()} - '
+        f'{i}) {ingredient["ingredient__name"].capitalize()} - '
         f'{ingredient["total_amount"]} '
         f'{ingredient["ingredient__measurement_unit"]}'
-        for i, ingredient in enumerate(ingredients)
+        for i, ingredient in enumerate(filling_basket, start=1)
     ])
     recipes_set = set(
-        [(ingredient['recipe__name']) for ingredient in ingredients]
+        [(ingredient['recipe__name']) for ingredient in filling_basket]
     )
-    recipes = 'Список рецептов:\n' + '\n'.join([
-        f'{i + 1}) {recipe.capitalize()}'
-        for i, recipe in enumerate(recipes_set)
-    ])
     return '\n'.join([
         header,
         products,
-        recipes
+        'Список рецептов:',
+        *[f'{i}) {recipe}' for i, recipe in enumerate(recipes_set, start=1)]
     ])
-    # return ingredients
 
 
 class CustomUserViewSet(UserViewSet):
@@ -159,13 +152,17 @@ class CustomUserViewSet(UserViewSet):
     def subscribe(self, request, *args, **kwargs):
         '''Создать и/или удалить подписку'''
         author = get_object_or_404(User, id=kwargs.get('id'))
-        recipes_limit = int(request.GET.get('recipes_limit', 10**10))
         if request.method == 'POST':
-            if recipes_limit is not None:
-                recipes_limit = int(recipes_limit)
             if self.request.user == author:
                 raise ValidationError('Подписка на себя невозможна!')
-            subscription, created = Subscriptions.objects.get_or_create(
+            serializer = SubscriptionsSerializer(
+                author, context={
+                    'request': request, 'limit': request.GET.get(
+                        'recipes_limit'
+                    )
+                }
+            )
+            _, created = Subscriptions.objects.get_or_create(
                 user=self.request.user,
                 author=author
             )
@@ -173,24 +170,17 @@ class CustomUserViewSet(UserViewSet):
                 raise ValidationError(
                     'Вы уже подписаны на этого пользователя!'
                 )
-            serializer = SubscriptionsSerializer(
-                author, context={'request': request, 'limit': recipes_limit}
-            )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        if request.method == 'DELETE':
-            get_object_or_404(Subscriptions, author=author).delete()
-            return Response(
-                'Успешная отписка',
-                status=status.HTTP_204_NO_CONTENT
-            )
+        # Логика удаления ниже
+        get_object_or_404(Subscriptions, author=author).delete()
+        return Response(
+            'Успешная отписка',
+            status=status.HTTP_204_NO_CONTENT
+        )
 
     @action(detail=False)
     def subscriptions(self, request):
         '''Отобразить все подписки пользователя'''
-        recipes_limit = request.query_params.get('recipes_limit', None)
-        if recipes_limit is not None:
-            recipes_limit = int(recipes_limit)
-
         user_subscriptions = Subscriptions.objects.filter(
             user=self.request.user
         ).values_list('author', flat=True)
@@ -199,7 +189,7 @@ class CustomUserViewSet(UserViewSet):
         pages = self.paginate_queryset(authors)
         serializer = SubscriptionsSerializer(
             pages, many=True,
-            context={'request': request, 'limit': recipes_limit}
+            context={'limit': request.query_params.get('recipes_limit', None)}
         )
         return self.get_paginated_response(serializer.data)
 

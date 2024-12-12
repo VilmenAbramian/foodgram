@@ -3,6 +3,7 @@ import json
 from django.core.management.base import BaseCommand
 from recipes.models import Tag
 
+
 class Command(BaseCommand):
     help = 'Импортирует теги из data/tags.json'
 
@@ -19,6 +20,8 @@ class Command(BaseCommand):
 
             Tag.objects.bulk_create(tags, ignore_conflicts=True)
 
-            self.stdout.write(self.style.SUCCESS('Теги успешно импортированы.'))
+            self.stdout.write(self.style.SUCCESS(
+                'Теги успешно импортированы.'
+            ))
         except Exception as e:
             self.stderr.write(self.style.ERROR(f'Ошибка: {e}'))

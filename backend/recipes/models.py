@@ -1,9 +1,9 @@
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import MinValueValidator, RegexValidator
+from django.core.validators import MinValueValidator
 from django.db import models
 
 
-MIN_VALUE = 1
+AMOUNT_MIN_VALUE = 1
 
 
 # ---- Модели для пользователя ----
@@ -22,6 +22,7 @@ class User(AbstractUser):
         verbose_name_plural = 'Пользователи'
         ordering = ('id',)
 
+
 class Subscriptions(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE,
@@ -29,7 +30,7 @@ class Subscriptions(models.Model):
     )
     author = models.ForeignKey(
         User, on_delete=models.CASCADE,
-        related_name='followed_users', verbose_name='Автор'
+        related_name='authors', verbose_name='Автор'
     )
 
     class Meta:
@@ -48,11 +49,11 @@ class Ingredient(models.Model):
     name = models.CharField(
         max_length=128,
         verbose_name='Название',
-        help_text='Введите название ингредиента')
+        help_text='Введите название')
     measurement_unit = models.CharField(
-        max_length=128,
-        verbose_name='Мера',
-        help_text='Введите название меры')
+        max_length=64,
+        verbose_name='Ед. измерения',
+        help_text='Введите название ед. измерения')
 
     class Meta:
         ordering = ('name',)
@@ -79,8 +80,8 @@ class Tag(models.Model):
     slug = models.SlugField(
         max_length=32,
         unique=True,
-        verbose_name='Слаг тега',
-        help_text='Введите слаг тега'
+        verbose_name='Слаг',
+        help_text='Введите слаг'
     )
 
     class Meta:
@@ -110,15 +111,15 @@ class Recipe(models.Model):
     )
     tags = models.ManyToManyField(Tag)
     cooking_time = models.IntegerField(
-        validators=[MinValueValidator(1.0)],
-        verbose_name='Время приготовления',
+        validators=[MinValueValidator(AMOUNT_MIN_VALUE)],
+        verbose_name='Время приготовления (мин)',
         help_text='Укажите время приготовления рецепта в минутах'
 
     )
 
     class Meta:
-        ordering = ('-id',)
-        default_related_name = 'recipe'
+        ordering = ('name', 'cooking_time',)
+        default_related_name = 'recipes'
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
 
@@ -131,19 +132,20 @@ class RecipeIngredient(models.Model):
         Recipe,
         related_name='recipe_ingredients',
         on_delete=models.CASCADE,
-        verbose_name='Название',
+        verbose_name='Рецепт',
         help_text='Выберите рецепт'
     )
     ingredient = models.ForeignKey(
         Ingredient,
-        related_name='ingredients',
+        related_name='recipe_ingredients',
         on_delete=models.CASCADE,
         help_text='Укажите ингредиенты'
     )
     amount = models.PositiveSmallIntegerField(
         validators=(
             MinValueValidator(
-                MIN_VALUE, 'Минимальное количество ингредиентов 1'
+                AMOUNT_MIN_VALUE,
+                f'Минимальное количество ингредиентов {AMOUNT_MIN_VALUE}'
             ),
         ),
         verbose_name='Мера',
@@ -151,8 +153,6 @@ class RecipeIngredient(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Cостав рецепта'
-        verbose_name_plural = 'Составы рецептов'
         constraints = (
             models.UniqueConstraint(
                 fields=('recipe', 'ingredient'),
@@ -185,10 +185,10 @@ class UserRecipeRelation(models.Model):
 class ShoppingList(UserRecipeRelation):
     class Meta(UserRecipeRelation.Meta):
         verbose_name = 'Список покупок'
-        verbose_name_plural = 'Список покупок'
+        verbose_name_plural = 'Списоки покупок'
 
 
 class FavoriteRecipes(UserRecipeRelation):
     class Meta(UserRecipeRelation.Meta):
-        verbose_name = 'Избранные рецепты'
+        verbose_name = 'Избранный рецепт'
         verbose_name_plural = 'Избранные рецепты'
