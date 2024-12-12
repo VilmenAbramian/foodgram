@@ -38,11 +38,12 @@ class CustomUserSerializer(UserSerializer):
 
     def get_is_subscribed(self, user):
         request = self.context.get('request')
-        if request is None or request.user.is_anonymous:
-            return False
-        return Subscriptions.objects.filter(
-            user=request.user, author=user
-        ).exists()
+        return (
+            request is not None and not request.user.is_anonymous
+            and Subscriptions.objects.filter(
+                user=request.user, author=user
+            ).exists()
+        )
 
 
 # --------------- Сериалайзеры для recipes ---------------
@@ -94,7 +95,8 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 
     def get_is_favorited(self, recipe):
         user = self.context.get('request').user
-        return not user.is_anonymous and FavoriteRecipes.objects.filter(recipe=recipe).exists()
+        return (not user.is_anonymous
+                and FavoriteRecipes.objects.filter(recipe=recipe).exists())
 
     def get_is_in_shopping_cart(self, recipe):
         user = self.context.get('request').user
@@ -121,7 +123,6 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
     Serializer для модели Recipe - запись, обновление, удаление данных
     '''
     image = Base64ImageField(required=True, allow_null=False)
-
     ingredients = AddIngredientSerializer(many=True, write_only=True)
 
     class Meta:
@@ -181,28 +182,21 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
     def update(self, recipe, validated_data):
         ingredients = validated_data.pop('ingredients', [])
-        if not ingredients:
-            raise serializers.ValidationError(
-                {'ingredients': 'Это обязательное поле!'}
-            )
         tags = validated_data.pop('tags', [])
-        if not tags:
-            raise serializers.ValidationError(
-                {'tags': 'Это обязательное поле!'}
-            )
+        self.validate_ingredients(ingredients)
+        self.validate_tags(tags)
         recipe.recipe_ingredients.all().delete()
         self.write_data(recipe, ingredients, tags)
         return super().update(recipe, validated_data)
 
     def write_data(self, recipe, ingredients, tags):
-        recipe_ingredients = [
+        RecipeIngredient.objects.bulk_create([
             RecipeIngredient(
                 recipe=recipe,
                 ingredient=ingredient['id'],
                 amount=ingredient['amount']
             ) for ingredient in ingredients
-        ]
-        RecipeIngredient.objects.bulk_create(recipe_ingredients)
+        ])
         recipe.tags.set(tags)
 
 
@@ -225,8 +219,14 @@ class SubscriptionsSerializer(CustomUserSerializer):
         )
 
     def get_recipes(self, author):
+        recipes_limit = self.context.get('limit')
+        try:
+            recipes_limit = int(recipes_limit) if recipes_limit else None
+        except ValueError:
+            raise serializers.ValidationError(
+                {'limit': 'Параметр должен быть целым числом!'}
+            )
         recipes = Recipe.objects.filter(author=author)
-        recipes_limit = self.context.get('limit', 0)
         if recipes_limit:
             recipes = recipes[:recipes_limit]
         return RecipeMiniSerializer(recipes, many=True).data

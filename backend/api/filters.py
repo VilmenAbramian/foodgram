@@ -35,10 +35,14 @@ class RecipeFilter(django_filters.FilterSet):
 
     def filter_is_in_shopping_cart(self, recipes, name, value):
         if self.request.user.is_authenticated and value:
-            return recipes.filter(shoppinglist_related__author=self.request.user)
+            return recipes.filter(
+                shoppinglist_related__author=self.request.user
+            )
         return recipes
 
     def filter_is_favorited(self, recipes, name, value):
         if self.request.user.is_authenticated and value:
-            return recipes.filter(favoriterecipes_related__author=self.request.user)
+            return recipes.filter(
+                favoriterecipes_related__author=self.request.user
+            )
         return recipes

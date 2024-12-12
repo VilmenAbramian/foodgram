@@ -3,6 +3,7 @@ import json
 from django.core.management.base import BaseCommand
 from recipes.models import Ingredient
 
+
 class Command(BaseCommand):
     help = 'Импортирует ингредиенты из data/ingredients.json'
 
@@ -18,6 +19,8 @@ class Command(BaseCommand):
             ]
             Ingredient.objects.bulk_create(ingredients, ignore_conflicts=True)
 
-            self.stdout.write(self.style.SUCCESS('Ингредиенты успешно импортированы.'))
+            self.stdout.write(self.style.SUCCESS(
+                'Ингредиенты успешно импортированы.'
+            ))
         except Exception as e:
             self.stderr.write(self.style.ERROR(f'Ошибка: {e}'))
