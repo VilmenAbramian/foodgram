@@ -18,17 +18,15 @@ class CookingTimeFilter(admin.SimpleListFilter):
         all_recipes = model_admin.model.objects.all()
         n = self.get_thresholds(all_recipes)['n']
         m = self.get_thresholds(all_recipes)['m']
+        s1 = all_recipes.filter(cooking_time__lt=n).count()
+        s2 = all_recipes.filter(
+            cooking_time__gte=n, cooking_time__lt=m
+        ).count()
+        s3 = all_recipes.filter(cooking_time__gte=m).count()
         return [
-            ('fast', _(f'быстрее {n} мин '
-                       f'({all_recipes.filter(cooking_time__lt=n).count()})')),
-            ('medium', _(f'от {n} до {m} мин '
-                         f'({all_recipes.filter(
-                             cooking_time__gte=n, cooking_time__lt=m
-                         ).count()})')),
-            ('long', _(f'дольше {m} мин '
-                       f'({all_recipes.filter(
-                           cooking_time__gte=m
-                       ).count()})')),
+            ('fast', _(f'быстрее {n} мин ({s1})')),
+            ('medium', _(f'от {n} до {m} мин ({s2})')),
+            ('long', _(f'дольше {m} мин ({s3})')),
         ]
 
     def queryset(self, request, queryset):
