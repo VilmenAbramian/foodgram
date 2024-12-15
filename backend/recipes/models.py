@@ -1,13 +1,21 @@
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
 
 AMOUNT_MIN_VALUE = 1
+MIN_COOCKING_TIME = 1
 
 
 # ---- Модели для пользователя ----
 class User(AbstractUser):
+    username = models.CharField(
+        max_length=150,
+        unique=True,
+        validators=(RegexValidator(regex=r'^[\w.@+-]+\Z'),),
+    )
+    first_name = models.CharField(max_length=150, blank=False)
+    last_name = models.CharField(max_length=150, blank=False)
     email = models.EmailField(unique=True, max_length=254)
     avatar = models.ImageField(
         upload_to='users/avatars/',
@@ -20,7 +28,7 @@ class User(AbstractUser):
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
-        ordering = ('id',)
+        ordering = ('first_name',)
 
 
 class Subscriptions(models.Model):
@@ -97,21 +105,29 @@ class Recipe(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='recipes'
+        verbose_name='Автор'
     )
-    name = models.CharField(max_length=256)
+    name = models.CharField(
+        max_length=256,
+        verbose_name='Название'
+    )
     image = models.ImageField(
         upload_to='media/',
         verbose_name='Изображение рецепта',
         help_text='Добавьте изображение рецепта'
     )
-    text = models.TextField()
+    text = models.TextField(
+        verbose_name='Описание'
+    )
     ingredients = models.ManyToManyField(
         Ingredient, through='RecipeIngredient'
     )
-    tags = models.ManyToManyField(Tag)
+    tags = models.ManyToManyField(
+        Tag,
+        verbose_name='Теги'
+    )
     cooking_time = models.IntegerField(
-        validators=[MinValueValidator(AMOUNT_MIN_VALUE)],
+        validators=[MinValueValidator(MIN_COOCKING_TIME)],
         verbose_name='Время приготовления (мин)',
         help_text='Укажите время приготовления рецепта в минутах'
 
@@ -130,7 +146,7 @@ class Recipe(models.Model):
 class RecipeIngredient(models.Model):
     recipe = models.ForeignKey(
         Recipe,
-        related_name='recipe_ingredients',
+
         on_delete=models.CASCADE,
         verbose_name='Рецепт',
         help_text='Выберите рецепт'
@@ -153,6 +169,7 @@ class RecipeIngredient(models.Model):
     )
 
     class Meta:
+        default_related_name = 'recipe_ingredients'
         constraints = (
             models.UniqueConstraint(
                 fields=('recipe', 'ingredient'),
@@ -166,10 +183,10 @@ class RecipeIngredient(models.Model):
 
 class UserRecipeRelation(models.Model):
     author = models.ForeignKey(
-        'User', on_delete=models.CASCADE, related_name='%(class)s_related'
+        'User', on_delete=models.CASCADE, related_name='%(class)s'
     )
     recipe = models.ForeignKey(
-        'Recipe', on_delete=models.CASCADE, related_name='%(class)s_related'
+        'Recipe', on_delete=models.CASCADE, related_name='%(class)s'
     )
 
     class Meta:
