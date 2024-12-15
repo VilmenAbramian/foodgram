@@ -42,17 +42,17 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'djoser',
-    'api',
     'recipes',
+    'api',
 ]
 
 # ------------------------------------
 # Для работы с DJOSER-классами
-USER_SERIALIZER = 'api.serializers.CustomUserSerializer'
+USER_SERIALIZER = 'api.serializers.UserSerializer'
 
 DJOSER = {
     'SERIALIZERS': {
-        'user_create': 'api.serializers.CustomUserCreateSerializer',
+        'user_create': 'djoser.serializers.UserCreateSerializer',
         'user_list': USER_SERIALIZER,
         'current_user': USER_SERIALIZER,
         'user': USER_SERIALIZER,
