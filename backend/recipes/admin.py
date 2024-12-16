@@ -15,8 +15,10 @@ class CookingTimeFilter(admin.SimpleListFilter):
     def lookups(self, request, model_admin):
         # Определение диапазонов времени готовки
         all_recipes = model_admin.model.objects.all()
-        minimum_time = min(all_recipes.values_list('cooking_time', flat=True))
-        maximum_time = max(all_recipes.values_list('cooking_time', flat=True))
+        all_cooking_times = all_recipes.values_list('cooking_time', flat=True)
+        minimum_time, maximum_time = (
+            min(all_cooking_times), max(all_cooking_times)
+        )
 
         medium_threshold = minimum_time + (maximum_time - minimum_time) // 3
         long_threshold = medium_threshold + (maximum_time - minimum_time) // 3
@@ -37,15 +39,13 @@ class CookingTimeFilter(admin.SimpleListFilter):
         if not value:
             return queryset
         lower, upper = value.split('-')
-        if lower == 'None':
-            return queryset.filter(cooking_time__lte=int(upper))
-        elif upper == 'None':
-            return queryset.filter(cooking_time__gte=int(lower))
-        else:
-            return queryset.filter(
-                cooking_time__gte=int(lower),
-                cooking_time__lte=int(upper)
-            )
+        lower = None if lower == 'None' else int(lower)
+        upper = None if upper == 'None' else int(upper)
+        if lower is not None and upper is not None:
+            return queryset.filter(cooking_time__range=(lower, upper))
+        if lower is not None:
+            return queryset.filter(cooking_time__gte=lower)
+        return queryset.filter(cooking_time__lte=upper)
 
 
 @admin.register(Recipe)
@@ -90,8 +90,8 @@ class IngredientAdmin(admin.ModelAdmin):
     list_filter = ('measurement_unit',)
 
     @admin.display(description='Рецепты')
-    def recipes_count(self, product):
-        return product.recipes.count()
+    def recipes_count(self, ingredient):
+        return ingredient.recipes.count()
 
 
 @admin.register(Tag)
@@ -131,21 +131,19 @@ class FoodgramUserAdmin(admin.ModelAdmin):
 
     @admin.display(description='Аватар', ordering='avatar')
     def avatar_display(self, user):
-        if user.avatar:
-            return mark_safe(
-                f'<img src="{user.avatar.url}" '
-                f'style="max-width: 50px; max-height: 50px;" />'
-            )
-        return ''
+        return mark_safe(
+            f'<img src="{user.avatar.url}" '
+            f'style="max-width: 50px; max-height: 50px;" />'
+        ) if user.avatar else ''
 
     @admin.display(description='Рецепты')
     def recipes_count(self, user):
         return user.recipes.count()
 
-    @admin.display(description='Количество подписок')
+    @admin.display(description='Подписки')
     def subscriptions_count(self, user):
         return user.authors.count()
 
-    @admin.display(description='Количество подписчиков')
+    @admin.display(description='Подписчики')
     def subscribers_count(self, user):
         return user.followers.count()

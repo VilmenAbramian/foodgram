@@ -183,7 +183,8 @@ class RecipeIngredient(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Связь рецепт-продукт',
+        verbose_name = 'Продукт в рецепте',
+        verbose_name_plural = 'Продукты в рецептах',
         default_related_name = 'recipe_ingredients'
         constraints = (
             models.UniqueConstraint(

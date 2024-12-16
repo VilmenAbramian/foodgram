@@ -213,6 +213,12 @@ class SubscriptionsSerializerFoodgram(FoodgramUserSerializer):
             raise serializers.ValidationError(
                 {'limit': 'Параметр должен быть целым числом!'}
             )
-        return RecipeMiniSerializer(
-            author.recipes.all()[:recipes_limit], many=True
-        ).data
+        return [
+            {
+                'id': recipe.id,
+                'name': recipe.name,
+                'cooking_time': recipe.cooking_time,
+                'image': recipe.image.url if recipe.image else None,
+            }
+            for recipe in author.recipes.all()[:recipes_limit]
+        ]

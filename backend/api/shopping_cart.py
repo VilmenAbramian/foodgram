@@ -18,8 +18,8 @@ def shopping_cart(filling_basket):
         for index, ingredient in enumerate(filling_basket, start=1)
     ]
     recipes = [
-        RECIPE_TEMPLATE.format(index=i, name=recipe)
-        for i, recipe in enumerate(
+        RECIPE_TEMPLATE.format(index=index, name=recipe)
+        for index, recipe in enumerate(
             {ingredient['recipe__name'] for
              ingredient in filling_basket}, start=1
         )

@@ -1,7 +1,6 @@
 from django.db.models import Sum
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from django.core.validators import validate_integer
 from django.urls import reverse
 from djoser.views import UserViewSet
 from rest_framework import status, viewsets
@@ -59,13 +58,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, url_path='get-link')
     def get_link(self, request, pk=None):
-        try:
-            validate_integer(pk)
-        except ValidationError:
-            return Response(
-                'Некорректный идентификатор рецепта!',
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        get_object_or_404(Recipe, pk=pk)
         return Response({'short-link': request.build_absolute_uri(
             reverse('recipe-detail', args=(pk,))
         )})
