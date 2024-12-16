@@ -48,7 +48,7 @@ INSTALLED_APPS = [
 
 # ------------------------------------
 # Для работы с DJOSER-классами
-USER_SERIALIZER = 'api.serializers.UserSerializer'
+USER_SERIALIZER = 'api.serializers.FoodgramUserSerializer'
 
 DJOSER = {
     'SERIALIZERS': {

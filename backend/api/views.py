@@ -1,6 +1,7 @@
 from django.db.models import Sum
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from django.core.validators import validate_integer
 from django.urls import reverse
 from djoser.views import UserViewSet
 from rest_framework import status, viewsets
@@ -16,9 +17,9 @@ from .filters import IngredientFilter, RecipeFilter
 from .paginations import ApiPagination
 from .permissions import IsOwnerOrReadOnly
 from .serializers import (
-    UserSerializer, IngredientSerializer,
+    FoodgramUserSerializer, IngredientSerializer,
     RecipeMiniSerializer, RecipeReadSerializer,
-    RecipeWriteSerializer, SubscriptionsSerializer,
+    RecipeWriteSerializer, SubscriptionsSerializerFoodgram,
     TagSerializer
 )
 from .shopping_cart import shopping_cart
@@ -58,11 +59,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, url_path='get-link')
     def get_link(self, request, pk=None):
-        get_object_or_404(Recipe, pk=pk)
-        short_link = request.build_absolute_uri(
-            reverse('recipe-detail', kwargs={'pk': pk})
-        )
-        return Response({'short-link': short_link})
+        try:
+            validate_integer(pk)
+        except ValidationError:
+            return Response(
+                'Некорректный идентификатор рецепта!',
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response({'short-link': request.build_absolute_uri(
+            reverse('recipe-detail', args=(pk,))
+        )})
 
     @staticmethod
     def favorite_and_cart(model, request, kwargs):
@@ -134,10 +140,9 @@ class UserViewSet(UserViewSet):
         '''Создать и/или удалить подписку'''
         author = get_object_or_404(User, id=kwargs['id'])
         if request.method == 'DELETE':
-            subscription = get_object_or_404(
+            get_object_or_404(
                 Subscriptions, user=request.user, author=author
-            )
-            subscription.delete()
+            ).delete()
             return Response(
                 'Успешная отписка',
                 status=status.HTTP_204_NO_CONTENT
@@ -148,11 +153,10 @@ class UserViewSet(UserViewSet):
             user=request.user, author=author
         )
         if not created:
-            raise ValidationError('Вы уже подписаны на этого пользователя!')
-        serializer = SubscriptionsSerializer(
-            author, context={'request': request, }
-        )
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+            raise ValidationError(f'Вы уже подписаны на пользователя {author}!')
+        return Response(SubscriptionsSerializerFoodgram(
+            author, context={'request': request,}
+        ).data, status=status.HTTP_201_CREATED)
 
     @action(detail=False)
     def subscriptions(self, request):
@@ -161,7 +165,7 @@ class UserViewSet(UserViewSet):
             user=self.request.user
         ).values_list('author', flat=True)
         return self.get_paginated_response(
-            SubscriptionsSerializer(
+            SubscriptionsSerializerFoodgram(
                 self.paginate_queryset(
                     User.objects.filter(id__in=user_subscriptions)
                 ), many=True,
@@ -183,7 +187,7 @@ class UserViewSet(UserViewSet):
                 'Изображение профиля успешно удалено',
                 status=status.HTTP_204_NO_CONTENT
             )
-        serializer = UserSerializer(data=request.data, partial=True)
+        serializer = FoodgramUserSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         new_avatar = serializer.validated_data.get('avatar')
         user.avatar = new_avatar
