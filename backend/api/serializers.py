@@ -17,7 +17,7 @@ MIN_AMOUNT = 1
 
 
 # --------------- Сериалайзер для User ---------------
-class UserSerializer(UserSerializer):
+class FoodgramUserSerializer(UserSerializer):
     avatar = Base64ImageField(required=False, allow_null=True)
     is_subscribed = serializers.SerializerMethodField()
 
@@ -65,7 +65,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     '''
     Serializer для модели Recipe - чтение данных
     '''
-    author = UserSerializer()
+    author = FoodgramUserSerializer()
     ingredients = IngredientInRecipeReadSerializer(
         many=True,
         source='recipe_ingredients',
@@ -132,7 +132,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
                 'В рецепте должен быть хотя бы один ингредиент!'
             )
         if len(ingredients) != len(
-            set((item['id'], item['amount']) for item in ingredients)
+                {item['id'] for item in ingredients}
         ):
             raise ValidationError(
                 'В рецепте не может быть повторяющихся ингредиентов!'
@@ -191,7 +191,7 @@ class RecipeMiniSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'image', 'cooking_time')
 
 
-class SubscriptionsSerializer(UserSerializer):
+class SubscriptionsSerializerFoodgram(FoodgramUserSerializer):
     recipes_count = serializers.IntegerField(
         source='recipes.count', read_only=True
     )
@@ -199,10 +199,9 @@ class SubscriptionsSerializer(UserSerializer):
 
     class Meta:
         model = User
-        fields = (*UserSerializer.Meta.fields, 'recipes_count', 'recipes')
+        fields = (*FoodgramUserSerializer.Meta.fields, 'recipes_count', 'recipes')
 
     def get_recipes(self, author):
-        print('Содержимое контекста: ', self.context)
         recipes_limit = self.context['request'].GET.get(
             'recipes_limit', 10**10
         )
@@ -212,5 +211,6 @@ class SubscriptionsSerializer(UserSerializer):
             raise serializers.ValidationError(
                 {'limit': 'Параметр должен быть целым числом!'}
             )
-        recipes = author.recipes.all()[:recipes_limit]
-        return RecipeMiniSerializer(recipes, many=True).data
+        return RecipeMiniSerializer(
+            author.recipes.all()[:recipes_limit], many=True
+        ).data
