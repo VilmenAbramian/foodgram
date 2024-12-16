@@ -13,52 +13,39 @@ class CookingTimeFilter(admin.SimpleListFilter):
     parameter_name = 'cooking_time'
 
     def lookups(self, request, model_admin):
-        # Динамическое определение порогов N и M
+        # Определение диапазонов времени готовки
         all_recipes = model_admin.model.objects.all()
-        thresholds = self.get_thresholds(all_recipes)
-        minimum_time, medium_time = (
-            thresholds['minimum_time'],
-            thresholds['medium_time']
-        )
+        minimum_time = min(all_recipes.values_list('cooking_time', flat=True))
+        maximum_time = max(all_recipes.values_list('cooking_time', flat=True))
+
+        medium_threshold = minimum_time + (maximum_time - minimum_time) // 3
+        long_threshold = medium_threshold + (maximum_time - minimum_time) // 3
 
         ranges = [
-            ('fast', f'быстрее {minimum_time} мин',
-             {'cooking_time__lt': minimum_time}),
-            ('medium', f'от {minimum_time} до {medium_time} мин', {
-                'cooking_time__gte': minimum_time,
-                'cooking_time__lt': medium_time}),
-            ('long', f'дольше {medium_time} мин',
-             {'cooking_time__gte': medium_time}),
+            ((None, medium_threshold), f'Быстро (< {medium_threshold} мин)'),
+            ((medium_threshold, long_threshold),
+             f'Средне (от {medium_threshold} до {long_threshold} мин)'),
+            ((long_threshold, None), f'Долго (> {long_threshold} мин)'),
         ]
-
         return [
-            (key, f'{label} ({all_recipes.filter(**query).count()})')
-            for key, label, query in ranges
+            (f'{lower}-{upper}', label)
+            for (lower, upper), label in ranges
         ]
 
     def queryset(self, request, queryset):
         value = self.value()
-        thresholds = self.get_thresholds(queryset)
-
-        filters = {
-            'fast': {'cooking_time__lt': thresholds['minimum_time']},
-            'medium': {
-                'cooking_time__gte': thresholds['minimum_time'],
-                'cooking_time__lt': thresholds['medium_time']
-            },
-            'long': {'cooking_time__gte': thresholds['medium_time']}
-        }
-        return queryset.filter(**filters.get(value, {}))
-
-    def get_thresholds(self, queryset):
-        cooking_times = queryset.values_list('cooking_time', flat=True)
-        if cooking_times:
-            min_time, max_time = min(cooking_times), max(cooking_times)
-            minimum_time = min_time + (max_time - min_time) // 3
-            medium_time = minimum_time + (max_time - min_time) // 3
+        if not value:
+            return queryset
+        lower, upper = value.split('-')
+        if lower == 'None':
+            return queryset.filter(cooking_time__lte=int(upper))
+        elif upper == 'None':
+            return queryset.filter(cooking_time__gte=int(lower))
         else:
-            minimum_time, medium_time = 10, 30
-        return {'minimum_time': minimum_time, 'medium_time': medium_time}
+            return queryset.filter(
+                cooking_time__gte=int(lower),
+                cooking_time__lte=int(upper)
+            )
 
 
 @admin.register(Recipe)
@@ -76,11 +63,10 @@ class RecipeAdmin(admin.ModelAdmin):
 
     @admin.display(description='Ингредиенты')
     def get_ingredients(self, recipe):
-        ingredients = recipe.recipe_ingredients.select_related('ingredient')
         return mark_safe('<br>'.join(
             f'{item.ingredient.name} '
             f'({item.ingredient.measurement_unit}) - {item.amount}'
-            for item in ingredients
+            for item in recipe.recipe_ingredients.select_related('ingredient')
         ))
 
     @admin.display(description='Картинка')
@@ -93,8 +79,8 @@ class RecipeAdmin(admin.ModelAdmin):
         )
 
     @admin.display(description='В избранном')
-    def in_favorites(self, recipes):
-        return recipes.favoriterecipes_related.count()
+    def in_favorites(self, recipe):
+        return recipe.favoriterecipes.count()
 
 
 @admin.register(Ingredient)
@@ -103,9 +89,9 @@ class IngredientAdmin(admin.ModelAdmin):
     search_fields = ('name', 'measurement_unit')
     list_filter = ('measurement_unit',)
 
-    @admin.display(description='Количество рецептов')
-    def recipes_count(self, ingredients):
-        return ingredients.recipes.count()
+    @admin.display(description='Рецепты')
+    def recipes_count(self, product):
+        return product.recipes.count()
 
 
 @admin.register(Tag)
@@ -113,20 +99,14 @@ class TagAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'slug', 'recipes_count')
     search_fields = ('name', 'slug',)
 
-    @admin.display(description='Количество рецептов')
+    @admin.display(description='Рецепты')
     def recipes_count(self, tag):
         return tag.recipes.count()
 
 
-@admin.register(ShoppingList)
-class ShoppingListAdmin(admin.ModelAdmin):
+@admin.register(ShoppingList, FavoriteRecipes)
+class ShoppingListFavoriteRecipesAdmin(admin.ModelAdmin):
     list_display = ('id', 'author', 'recipe__name',)
-    list_filter = ('author', 'recipe',)
-
-
-@admin.register(FavoriteRecipes)
-class FavoriteRecipesAdmin(admin.ModelAdmin):
-    list_display = ('id', 'author', 'recipe',)
     list_filter = ('author', 'recipe',)
 
 
@@ -137,7 +117,7 @@ class SubscriptionsAdmin(admin.ModelAdmin):
 
 
 @admin.register(User)
-class CustomUserAdmin(admin.ModelAdmin):
+class FoodgramUserAdmin(admin.ModelAdmin):
     list_display = (
         'id', 'username', 'full_name', 'email', 'avatar_display',
         'recipes_count', 'subscriptions_count', 'subscribers_count'
@@ -156,9 +136,9 @@ class CustomUserAdmin(admin.ModelAdmin):
                 f'<img src="{user.avatar.url}" '
                 f'style="max-width: 50px; max-height: 50px;" />'
             )
-        return "Нет аватара"
+        return ''
 
-    @admin.display(description='Количество рецептов')
+    @admin.display(description='Рецепты')
     def recipes_count(self, user):
         return user.recipes.count()
 

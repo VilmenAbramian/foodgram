@@ -13,14 +13,28 @@ class User(AbstractUser):
         max_length=150,
         unique=True,
         validators=(RegexValidator(regex=r'^[\w.@+-]+\Z'),),
+        verbose_name='Никнейм',
     )
-    first_name = models.CharField(max_length=150, blank=False)
-    last_name = models.CharField(max_length=150, blank=False)
-    email = models.EmailField(unique=True, max_length=254)
+    first_name = models.CharField(
+        max_length=150,
+        blank=False,
+        verbose_name='Имя',
+    )
+    last_name = models.CharField(
+        max_length=150,
+        blank=False,
+        verbose_name='Фамилия'
+    )
+    email = models.EmailField(
+        unique=True,
+        max_length=254,
+        verbose_name='Электронная почта',
+    )
     avatar = models.ImageField(
         upload_to='users/avatars/',
         null=True,
-        default=None
+        default=None,
+        verbose_name='Фото профиля',
     )
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ('username', 'first_name', 'last_name')
@@ -28,7 +42,7 @@ class User(AbstractUser):
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
-        ordering = ('first_name',)
+        ordering = ('email',)
 
 
 class Subscriptions(models.Model):
@@ -113,14 +127,16 @@ class Recipe(models.Model):
     )
     image = models.ImageField(
         upload_to='media/',
-        verbose_name='Изображение рецепта',
-        help_text='Добавьте изображение рецепта'
+        verbose_name='Изображение',
+        help_text='Добавьте изображение'
     )
     text = models.TextField(
         verbose_name='Описание'
     )
     ingredients = models.ManyToManyField(
-        Ingredient, through='RecipeIngredient'
+        Ingredient,
+        through='RecipeIngredient',
+        verbose_name='Продукты'
     )
     tags = models.ManyToManyField(
         Tag,
@@ -146,29 +162,28 @@ class Recipe(models.Model):
 class RecipeIngredient(models.Model):
     recipe = models.ForeignKey(
         Recipe,
-
         on_delete=models.CASCADE,
         verbose_name='Рецепт',
         help_text='Выберите рецепт'
     )
     ingredient = models.ForeignKey(
         Ingredient,
-        related_name='recipe_ingredients',
         on_delete=models.CASCADE,
+        verbose_name='Продукт',
         help_text='Укажите ингредиенты'
     )
     amount = models.PositiveSmallIntegerField(
         validators=(
             MinValueValidator(
                 AMOUNT_MIN_VALUE,
-                f'Минимальное количество ингредиентов {AMOUNT_MIN_VALUE}'
             ),
         ),
         verbose_name='Мера',
-        help_text='Укажите количество ингредиента'
+        help_text='Укажите меру ингредиента'
     )
 
     class Meta:
+        verbose_name = 'Связь рецепт-продукт',
         default_related_name = 'recipe_ingredients'
         constraints = (
             models.UniqueConstraint(

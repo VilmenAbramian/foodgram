@@ -153,9 +153,11 @@ class UserViewSet(UserViewSet):
             user=request.user, author=author
         )
         if not created:
-            raise ValidationError(f'Вы уже подписаны на пользователя {author}!')
+            raise ValidationError(
+                f'Вы уже подписаны на пользователя {author}!'
+            )
         return Response(SubscriptionsSerializerFoodgram(
-            author, context={'request': request,}
+            author, context={'request': request, }
         ).data, status=status.HTTP_201_CREATED)
 
     @action(detail=False)
