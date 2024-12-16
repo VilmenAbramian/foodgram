@@ -199,7 +199,9 @@ class SubscriptionsSerializerFoodgram(FoodgramUserSerializer):
 
     class Meta:
         model = User
-        fields = (*FoodgramUserSerializer.Meta.fields, 'recipes_count', 'recipes')
+        fields = (
+            *FoodgramUserSerializer.Meta.fields, 'recipes_count', 'recipes'
+        )
 
     def get_recipes(self, author):
         recipes_limit = self.context['request'].GET.get(
