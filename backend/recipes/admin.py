@@ -1,11 +1,22 @@
+import ast
 from django.contrib import admin
+from django.contrib.auth.models import Group
 from django.utils.safestring import mark_safe
 
 from .models import (
     FavoriteRecipes, Ingredient,
-    Recipe, ShoppingList,
-    Subscriptions, Tag, User
+    Recipe, RecipeIngredient,
+    ShoppingList, Subscriptions,
+    Tag, User
 )
+
+
+class RecipeIngredientInline(admin.TabularInline):
+    model = RecipeIngredient
+    extra = 1
+    min_num = 1
+    verbose_name = "Ингредиент"
+    verbose_name_plural = "Ингредиенты"
 
 
 class CookingTimeFilter(admin.SimpleListFilter):
@@ -24,13 +35,14 @@ class CookingTimeFilter(admin.SimpleListFilter):
         long_threshold = medium_threshold + (maximum_time - minimum_time) // 3
 
         ranges = [
-            ((None, medium_threshold), f'Быстро (< {medium_threshold} мин)'),
+            ((0, medium_threshold), f'Быстро (< {medium_threshold} мин)'),
             ((medium_threshold, long_threshold),
              f'Средне (от {medium_threshold} до {long_threshold} мин)'),
-            ((long_threshold, None), f'Долго (> {long_threshold} мин)'),
+            ((long_threshold, maximum_time),
+             f'Долго (> {long_threshold} мин)'),
         ]
         return [
-            (f'{lower}-{upper}', label)
+            (f'({lower},{upper})', label)
             for (lower, upper), label in ranges
         ]
 
@@ -38,14 +50,11 @@ class CookingTimeFilter(admin.SimpleListFilter):
         value = self.value()
         if not value:
             return queryset
-        lower, upper = value.split('-')
-        lower = None if lower == 'None' else int(lower)
-        upper = None if upper == 'None' else int(upper)
-        if lower is not None and upper is not None:
-            return queryset.filter(cooking_time__range=(lower, upper))
-        if lower is not None:
-            return queryset.filter(cooking_time__gte=lower)
-        return queryset.filter(cooking_time__lte=upper)
+        try:
+            lower, upper = ast.literal_eval(value)
+        except (SyntaxError, ValueError):
+            raise ValueError('Ошибка в формате диапазона для фильтрации!')
+        return queryset.filter(cooking_time__range=(lower, upper))
 
 
 @admin.register(Recipe)
@@ -56,6 +65,7 @@ class RecipeAdmin(admin.ModelAdmin):
         'in_favorites'
     )
     list_filter = ('tags', 'author', CookingTimeFilter)
+    inlines = (RecipeIngredientInline,)
 
     @admin.display(description='Теги')
     def get_tags(self, recipe):
@@ -147,3 +157,6 @@ class FoodgramUserAdmin(admin.ModelAdmin):
     @admin.display(description='Подписчики')
     def subscribers_count(self, user):
         return user.followers.count()
+
+
+admin.site.unregister(Group)

@@ -41,5 +41,6 @@ services:
     volumes:
       - static:/staticfiles
       - media:/app/media
+      - ./docs/:/usr/share/nginx/html/api/docs/
     ports:
       - 7080:80
