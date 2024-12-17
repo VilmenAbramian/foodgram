@@ -1,5 +1,7 @@
+from io import BytesIO
+
 from django.db.models import Sum
-from django.http import HttpResponse
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
@@ -60,7 +62,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_link(self, request, pk=None):
         if not Recipe.objects.filter(pk=pk).exists():
             raise ValidationError(
-                'Рецепт с указанным идентификатором не найден!'
+                f'Рецепт с идентификатором {pk} не найден!'
             )
         return Response({
             'short-link': f'http://{request.get_host()}/s/{pk}'
@@ -109,13 +111,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
             total_amount=Sum('amount')
         ).order_by('ingredient__name')
 
-        shopping_cart(filling_basket)
-        response = HttpResponse(
-            shopping_cart(filling_basket),
+        shopping_list_file = BytesIO()
+        shopping_list_file.write(shopping_cart(filling_basket).encode('utf-8'))
+        shopping_list_file.seek(0)  # Возвращаем указатель в начало файла
+        return FileResponse(
+            shopping_list_file,
+            as_attachment=True,
+            filename='shop_list.txt',
             content_type='text/plain'
         )
-        response['Content-Disposition'] = 'attachment; filename=shop_list.txt'
-        return response
 
     @action(detail=True,
             methods=('post', 'delete'),

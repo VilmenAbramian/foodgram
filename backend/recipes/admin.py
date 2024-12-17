@@ -1,6 +1,8 @@
-import ast
+from django import forms
 from django.contrib import admin
 from django.contrib.auth.models import Group
+from django.db.models import F, Value, CharField
+from django.db.models.functions import Concat
 from django.utils.safestring import mark_safe
 
 from .models import (
@@ -11,8 +13,31 @@ from .models import (
 )
 
 
+class RecipeIngredientInlineForm(forms.ModelForm):
+    ingredient = forms.ModelChoiceField(
+        queryset=Ingredient.objects.all().annotate(
+            display_name=Concat(
+                F('name'), Value(' ('), F('measurement_unit'), Value(')'),
+                output_field=CharField()
+            )
+        ),
+        label="Ингредиент",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['ingredient'].label_from_instance = (
+            lambda ingredient: ingredient.display_name
+        )
+
+    class Meta:
+        model = RecipeIngredient
+        fields = ('ingredient', 'amount')
+
+
 class RecipeIngredientInline(admin.TabularInline):
     model = RecipeIngredient
+    form = RecipeIngredientInlineForm
     extra = 1
     min_num = 1
     verbose_name = "Ингредиент"
@@ -41,20 +66,13 @@ class CookingTimeFilter(admin.SimpleListFilter):
             ((long_threshold, maximum_time),
              f'Долго (> {long_threshold} мин)'),
         ]
-        return [
-            (f'({lower},{upper})', label)
-            for (lower, upper), label in ranges
-        ]
+        return ranges
 
     def queryset(self, request, queryset):
-        value = self.value()
-        if not value:
+        cooking_time = request.GET.getlist('cooking_time')
+        if not cooking_time:
             return queryset
-        try:
-            lower, upper = ast.literal_eval(value)
-        except (SyntaxError, ValueError):
-            raise ValueError('Ошибка в формате диапазона для фильтрации!')
-        return queryset.filter(cooking_time__range=(lower, upper))
+        return queryset.filter(cooking_time__range=map(int, cooking_time))
 
 
 @admin.register(Recipe)
