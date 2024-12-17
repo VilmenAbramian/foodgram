@@ -1,5 +1,29 @@
-Находясь в папке infra, выполните команду docker-compose up. При выполнении этой команды контейнер frontend, описанный в docker-compose.yml, подготовит файлы, необходимые для работы фронтенд-приложения, а затем прекратит свою работу.
+# Foodgram
+Автор: Абрамян Вильмен Левонович 
+Используемый стек:
+`Python` `Django` `Django Rest Framework` `Docker` `Gunicorn` `NGINX` `PostgreSQL` `Yandex Cloud` `Continuous Integration` `Continuous Deployment`
 
-По адресу http://localhost изучите фронтенд веб-приложения, а по адресу http://localhost/api/docs/ — спецификацию API.
+Онлайн-сервис для публикации рецептов. На этом сервисе пользователи публикуют свои рецепты, подписываются на публикации других пользователей, добавляют понравившиеся рецепты в избранное, а перед походом в магазин могут скачать список продуктов, необходимых для приготовления одного или нескольких выбранных блюд.
 
-Тест запуска workflow
+Команды для локального запуска через Docker:
+```
+git clone https://github.com/VilmenAbramian/foodgram
+docker compose up
+```
+Далее внутри контейнера backend выполнить команды:
+```
+python manage.py migrate
+python manage.py collectstatic
+cp -r /app/collected_static/. /backend_static/static/
+python manage.py import_tags
+python manage.py import_ingredients
+```
+Для запуска API проекта после клонирования репозитория выполнить команды:
+```
+pip install -r requirements.txt
+Далее по списку выше
+```
+Документация сервиса доступна по ссылке:
+```
+http://foodgram_url/api/docs
+```
