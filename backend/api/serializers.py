@@ -196,16 +196,14 @@ class SubscriptionsSerializerFoodgram(FoodgramUserSerializer):
         source='recipes.count', read_only=True
     )
     recipes = serializers.SerializerMethodField()
-
     class Meta:
         model = User
         fields = (
             *FoodgramUserSerializer.Meta.fields, 'recipes_count', 'recipes'
         )
-
     def get_recipes(self, author):
         recipes_limit = self.context['request'].GET.get(
-            'recipes_limit', 10**10
+            'recipes_limit', 10 ** 10
         )
         try:
             recipes_limit = int(recipes_limit)
@@ -213,12 +211,6 @@ class SubscriptionsSerializerFoodgram(FoodgramUserSerializer):
             raise serializers.ValidationError(
                 {'limit': 'Параметр должен быть целым числом!'}
             )
-        return [
-            {
-                'id': recipe.id,
-                'name': recipe.name,
-                'cooking_time': recipe.cooking_time,
-                'image': recipe.image.url if recipe.image else None,
-            }
-            for recipe in author.recipes.all()[:recipes_limit]
-        ]
+        return RecipeMiniSerializer(
+            author.recipes.all()[:recipes_limit], many=True
+        ).data

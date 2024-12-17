@@ -1,7 +1,7 @@
 from django.db.models import Sum
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from django.urls import reverse
 from djoser.views import UserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -45,7 +45,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    queryset = Recipe.objects.all()
+    queryset = Recipe.objects.all().order_by('-created_at')
     pagination_class = ApiPagination
     permission_classes = (IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly,)
     filter_backends = (DjangoFilterBackend, )
@@ -58,10 +58,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, url_path='get-link')
     def get_link(self, request, pk=None):
-        get_object_or_404(Recipe, pk=pk)
-        return Response({'short-link': request.build_absolute_uri(
-            reverse('recipe-detail', args=(pk,))
-        )})
+        if not Recipe.objects.filter(pk=pk).exists():
+            raise ValidationError(
+                'Рецепт с указанным идентификатором не найден!'
+            )
+        return Response({
+            'short-link': f'http://{request.get_host()}/s/{pk}'
+        })
 
     @staticmethod
     def favorite_and_cart(model, request, kwargs):
@@ -105,10 +108,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
         ).annotate(
             total_amount=Sum('amount')
         ).order_by('ingredient__name')
-        return Response(
+
+        shopping_cart(filling_basket)
+        response = HttpResponse(
             shopping_cart(filling_basket),
-            status=status.HTTP_200_OK
+            content_type='text/plain'
         )
+        response['Content-Disposition'] = 'attachment; filename=shop_list.txt'
+        return response
 
     @action(detail=True,
             methods=('post', 'delete'),

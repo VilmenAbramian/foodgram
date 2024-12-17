@@ -44,6 +44,9 @@ class User(AbstractUser):
         verbose_name_plural = 'Пользователи'
         ordering = ('email',)
 
+    def __str__(self):
+        return self.username
+
 
 class Subscriptions(models.Model):
     user = models.ForeignKey(
@@ -144,13 +147,17 @@ class Recipe(models.Model):
     )
     cooking_time = models.IntegerField(
         validators=[MinValueValidator(MIN_COOCKING_TIME)],
-        verbose_name='Время приготовления (мин)',
+        verbose_name='Время (мин)',
         help_text='Укажите время приготовления рецепта в минутах'
 
     )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата создания'
+    )
 
     class Meta:
-        ordering = ('name', 'cooking_time',)
+        ordering = ('created_at', 'name', 'cooking_time',)
         default_related_name = 'recipes'
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
