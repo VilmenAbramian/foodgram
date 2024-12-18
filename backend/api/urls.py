@@ -3,8 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     IngredientViewSet, RecipeViewSet,
-    RedirectToRecipeView, TagViewSet,
-    UserViewSet
+    TagViewSet, UserViewSet
 )
 
 
@@ -18,5 +17,4 @@ router.register('tags', TagViewSet, basename='tag')
 urlpatterns = [
     path('', include(router.urls)),
     path(r'auth/', include('djoser.urls.authtoken')),
-    path('s/<int:pk>/', RedirectToRecipeView.as_view(), name='short-link'),
 ]
