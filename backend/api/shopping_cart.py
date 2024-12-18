@@ -13,8 +13,11 @@ def shopping_cart(filling_basket):
     for ingredient in filling_basket:
         ingredient_name = ingredient['ingredient__name']
         ingredient_unit = ingredient['ingredient__measurement_unit']
-        ingredient_groups[(ingredient_name, ingredient_unit)]['total_amount'] += ingredient['total_amount']
-        ingredient_groups[(ingredient_name, ingredient_unit)]['unit'] = ingredient_unit
+        ingredient_groups[(ingredient_name,
+                           ingredient_unit)]['total_amount'] += (
+            ingredient)['total_amount']
+        ingredient_groups[(ingredient_name,
+                           ingredient_unit)]['unit'] = ingredient_unit
         recipes.add(ingredient['recipe__name'])
     products = [
         PRODUCT_TEMPLATE.format(
