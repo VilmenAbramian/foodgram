@@ -32,9 +32,10 @@ from recipes.models import (
 )
 
 
-class RedirectToRecipeView(View):
-    def get(self, request, pk):
-        return redirect('recipe-detail', pk=pk)
+def redirect_to_recipe(request, pk):
+    if not Recipe.objects.filter(pk=pk).exists():
+        raise ValidationError(f'Рецепт с идентификатором {pk} не найден!')
+    return redirect(f'/recipes/{pk}/')
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -111,17 +112,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
         filling_basket = RecipeIngredient.objects.filter(
             recipe__shoppinglist__author=request.user
         ).values(
-            'ingredient__name', 'ingredient__measurement_unit',
-            'recipe__name'
+            'ingredient__name', 'ingredient__measurement_unit', 'recipe__name'
         ).annotate(
             total_amount=Sum('amount')
         ).order_by('ingredient__name')
 
-        shopping_list_file = BytesIO()
-        shopping_list_file.write(shopping_cart(filling_basket).encode('utf-8'))
-        shopping_list_file.seek(0)  # Возвращаем указатель в начало файла
         return FileResponse(
-            shopping_list_file,
+            BytesIO(shopping_cart(filling_basket).encode('utf-8')),
             as_attachment=True,
             filename='shop_list.txt',
             content_type='text/plain'
