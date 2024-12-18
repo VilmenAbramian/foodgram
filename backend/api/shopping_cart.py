@@ -27,7 +27,9 @@ def shopping_cart(filling_basket):
             description=f"{name} ({unit})",
             amount=total_amount
         )
-        for index, ((name, unit), total_amount) in enumerate(sorted_ingredients, start=1)
+        for index, ((name, unit), total_amount) in enumerate(
+            sorted_ingredients, start=1
+        )
     ]
     recipes_list = [
         RECIPE_TEMPLATE.format(index=index, name=recipe)
@@ -40,4 +42,3 @@ def shopping_cart(filling_basket):
         'Список рецептов:',
         *recipes_list,
     ])
-
