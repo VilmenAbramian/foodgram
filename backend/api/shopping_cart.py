@@ -2,35 +2,36 @@ from collections import defaultdict
 from datetime import date
 
 HEADER_TEMPLATE = "Список покупок от {date}"
-PRODUCT_TEMPLATE = "{index}) {name} - {amount} {unit}"
+PRODUCT_TEMPLATE = "{index}) {description} - {amount}"
 RECIPE_TEMPLATE = "{index}) {name}"
 
 
 def shopping_cart(filling_basket):
     header = HEADER_TEMPLATE.format(date=date.today().strftime('%d.%m.%Y'))
-    ingredient_groups = defaultdict(lambda: {'total_amount': 0, 'unit': ''})
+    ingredient_groups = defaultdict(lambda: 0)
     recipes = set()
     for ingredient in filling_basket:
-        ingredient_name = ingredient['ingredient__name']
-        ingredient_unit = ingredient['ingredient__measurement_unit']
-        ingredient_groups[(ingredient_name,
-                           ingredient_unit)]['total_amount'] += (
-            ingredient)['total_amount']
-        ingredient_groups[(ingredient_name,
-                           ingredient_unit)]['unit'] = ingredient_unit
+        ingredient_key = (
+            ingredient['ingredient__name'].capitalize(),
+            ingredient['ingredient__measurement_unit']
+        )
+        ingredient_groups[ingredient_key] += ingredient['total_amount']
         recipes.add(ingredient['recipe__name'])
+    sorted_ingredients = sorted(
+        ingredient_groups.items(),
+        key=lambda item: item[0][0]
+    )
     products = [
         PRODUCT_TEMPLATE.format(
             index=index,
-            name=ingredient[0][0].capitalize(),
-            amount=ingredient[1]['total_amount'],
-            unit=ingredient[1]['unit']
+            description=f"{name} ({unit})",
+            amount=total_amount
         )
-        for index, ingredient in enumerate(ingredient_groups.items(), start=1)
+        for index, ((name, unit), total_amount) in enumerate(sorted_ingredients, start=1)
     ]
     recipes_list = [
         RECIPE_TEMPLATE.format(index=index, name=recipe)
-        for index, recipe in enumerate(recipes, start=1)
+        for index, recipe in enumerate(sorted(recipes), start=1)
     ]
     return '\n'.join([
         header,
@@ -39,3 +40,4 @@ def shopping_cart(filling_basket):
         'Список рецептов:',
         *recipes_list,
     ])
+

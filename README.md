@@ -1,5 +1,5 @@
 # Foodgram
-Автор: Абрамян Вильмен Левонович 
+Автор: [[9882016alpha@gmail.com | Абрамян Вильмен Левонович]]
 Используемый стек:
 `Python` `Django` `Django Rest Framework` `Docker` `Gunicorn` `NGINX` `PostgreSQL` `Yandex Cloud` `Continuous Integration` `Continuous Deployment`
 
@@ -25,5 +25,5 @@ pip install -r requirements.txt
 ```
 Документация сервиса доступна по ссылке:
 ```
-http://foodgram_url/api/docs
+[[http://foodgram_url/api/docs | Документация API]]
 ```
